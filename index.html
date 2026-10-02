@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <!-- 禁用原生縮放，確保平板體驗類似原生 App -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>數字大挑戰</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Rubik:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #fdf2f8; 
+            background-image: 
+                linear-gradient(#fbcfe8 2px, transparent 2px),
+                linear-gradient(90deg, #fbcfe8 2px, transparent 2px);
+            background-size: 30px 30px;
+            color: #1e293b;
+            touch-action: manipulation; 
+        }
+        .num-font { font-family: 'Rubik', sans-serif; }
+        
+        /* 核心隱藏類別 (加上 !important 避免被 flex 覆蓋，解決版面消失的元凶) */
+        .hidden-stage { display: none !important; }
+
+        /* 電動玩具風框線與陰影 (Neo-brutalism) */
+        .arcade-border {
+            border: 4px solid #0f172a;
+            box-shadow: 6px 6px 0px #0f172a;
+            border-radius: 12px;
+        }
+        
+        .arcade-btn {
+            border: 4px solid #0f172a;
+            box-shadow: 4px 4px 0px #0f172a;
+            border-radius: 8px;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+            font-weight: 900;
+        }
+        .arcade-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px #0f172a !important;
+        }
+        .arcade-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px #0f172a !important;
+        }
+
+        /* 輸入框樣式 */
+        .arcade-input {
+            border: 4px solid #0f172a;
+            border-radius: 8px;
+            outline: none;
+            transition: all 0.2s;
+            font-family: 'Rubik', sans-serif;
+            font-weight: 900;
+        }
+        .arcade-input:focus {
+            background-color: #fef08a;
+            box-shadow: inset 0 0 0 2px #eab308;
+        }
+
+        /* 標準分解式專用輸入框 */
+        .base-input, .exp-input {
+            border: 3px dashed #64748b;
+            background-color: #f8fafc;
+            text-align: center;
+            outline: none;
+            border-radius: 8px;
+            font-family: 'Rubik', sans-serif;
+            font-weight: 900;
+        }
+        .base-input:focus, .exp-input:focus {
+            border-color: #0f172a;
+            border-style: solid;
+            background-color: #fef08a;
+        }
+        .base-input { width: 3.5rem; height: 3.5rem; font-size: 1.5rem; }
+        .exp-input { width: 2.5rem; height: 2.5rem; font-size: 1.25rem; }
+        
+        /* 動畫 */
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* 浮動鍵盤閃爍提示動畫 */
+        @keyframes attention-pulse {
+            0%, 100% { transform: scale(1); box-shadow: 4px 4px 0px #0f172a; filter: brightness(1); }
+            50% { transform: scale(1.15); box-shadow: 0px 0px 0px #0f172a; filter: brightness(1.1); }
+        }
+        .keypad-flash {
+            animation: attention-pulse 1.2s infinite ease-in-out;
+        }
+
+        /* 浮動鍵盤四角縮放控制點 */
+        .resize-handle {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background-color: #fef08a;
+            border: 3px solid #0f172a;
+            z-index: 60;
+            transition: transform 0.1s;
+        }
+        .resize-handle:hover { transform: scale(1.2); }
+        .resize-handle.nw { top: -6px; left: -6px; cursor: nwse-resize; border-radius: 6px 0 0 0; }
+        .resize-handle.ne { top: -6px; right: -6px; cursor: nesw-resize; border-radius: 0 6px 0 0; }
+        .resize-handle.sw { bottom: -6px; left: -6px; cursor: nesw-resize; border-radius: 0 0 0 6px; }
+        .resize-handle.se { bottom: -6px; right: -6px; cursor: nwse-resize; border-radius: 0 0 6px 0; }
+
+        /* S型蛇狀網格連線箭頭 (使用 cqi 等比例縮放單位) */
+        #chain-grid {
+            container-type: inline-size;
+        }
+        .cell-text { font-size: 10cqi; line-height: 1; }
+        .cell-text-small { font-size: 5cqi; line-height: 1.2; }
+        .cell-badge { width: 6cqi; height: 6cqi; font-size: 3.5cqi; top: -2cqi; left: -2cqi; border-width: 0.5cqi; }
+        
+        .arrow-right::after { content: "→"; position: absolute; right: -4.5cqi; top: 50%; transform: translateY(-50%); font-size: 6cqi; color: #94a3b8; font-weight: bold; z-index: 10; pointer-events: none; }
+        .arrow-left::after { content: "←"; position: absolute; left: -4.5cqi; top: 50%; transform: translateY(-50%); font-size: 6cqi; color: #94a3b8; font-weight: bold; z-index: 10; pointer-events: none; }
+        .arrow-down::after { content: "↓"; position: absolute; bottom: -4.5cqi; left: 50%; transform: translateX(-50%); font-size: 6cqi; color: #94a3b8; font-weight: bold; z-index: 10; pointer-events: none; }
+        
+        /* 樹狀圖線條置中技巧 */
+        .tree-line-wrapper { width: 0px; display: flex; justify-content: center; }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col">
+
+    <header class="bg-white border-b-4 border-slate-900 sticky top-0 z-20 flex-shrink-0">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center gap-2">
+            <div class="flex flex-col">
+                <h1 class="text-xl sm:text-2xl lg:text-3xl font-black tracking-wide text-slate-900 flex items-center gap-2">
+                    🎮 數字大挑戰
+                </h1>
+                <span class="text-[10px] sm:text-xs text-slate-500 font-bold tracking-wider mt-0.5">台南市忠孝國中數學王子蘇恭弘製作</span>
+            </div>
+            <!-- 進度條導覽 -->
+            <div class="flex items-center gap-2 sm:gap-4 text-xs sm:text-base font-black tracking-wide">
+                <div id="nav-step-1" class="flex items-center gap-1 sm:gap-2 text-pink-600 transition-colors cursor-pointer hover:bg-slate-50 p-1 rounded-lg" onclick="jumpToStage(1)">
+                    <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-4 border-current flex items-center justify-center bg-pink-100 shadow-[2px_2px_0px_#0f172a]">1</div>
+                    <span class="hidden md:inline">質數接龍</span>
+                </div>
+                <div class="w-2 sm:w-4 h-1 bg-slate-800"></div>
+                <div id="nav-step-2" class="flex items-center gap-1 sm:gap-2 text-slate-400 transition-colors cursor-pointer hover:bg-slate-50 p-1 rounded-lg" onclick="jumpToStage(2)">
+                    <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-4 border-current flex items-center justify-center bg-white">2</div>
+                    <span class="hidden md:inline">質因數分解</span>
+                </div>
+                <div class="w-2 sm:w-4 h-1 bg-slate-800"></div>
+                <div id="nav-step-3" class="flex items-center gap-1 sm:gap-2 text-slate-400 transition-colors cursor-pointer hover:bg-slate-50 p-1 rounded-lg" onclick="jumpToStage(3)">
+                    <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-4 border-current flex items-center justify-center bg-white">3</div>
+                    <span class="hidden md:inline">標準分解式</span>
+                </div>
+                <span class="text-[10px] text-slate-400 hidden lg:inline ml-2">(💡 點擊可跳關)</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主容器：嚴格限制高度，不允許外層捲動 -->
+    <main class="flex-1 w-full max-w-7xl mx-auto p-2 sm:p-4 flex flex-col relative overflow-hidden min-h-0">
+        
+        <section id="stage-1" class="fade-in flex flex-col w-full h-full min-h-0">
+            <div class="text-center mb-2 bg-white p-2 sm:p-4 arcade-border w-full flex-shrink-0">
+                <h2 class="text-lg sm:text-2xl font-black mb-1 flex items-center justify-center gap-2 text-pink-600">
+                    🕹️ 第一關：質數接龍
+                </h2>
+                <p class="text-slate-700 font-bold text-xs sm:text-sm">
+                    在方格中填寫質數，讓首尾數字相連！連成 <span class="text-lg text-pink-600 num-font mx-1">8</span> 個即可過關。<br>
+                    <span class="text-amber-600">🏆 挑戰題：最多可以排多少個質數？（試著挑戰 14 格全滿吧！）</span>
+                </p>
+            </div>
+
+            <div class="flex-1 min-h-0 flex flex-col md:flex-row md:items-stretch gap-4 w-full pb-2 md:pb-4">
+                <!-- 左側：S型接龍網格區 (60%) -->
+                <div class="w-full md:w-[60%] flex-1 arcade-border bg-cyan-100 p-2 sm:p-4 flex flex-col items-center justify-center relative min-h-0 overflow-hidden">
+                    
+                    <!-- 16格網格容器 -->
+                    <div class="flex-1 w-full min-h-0 flex items-center justify-center p-1 sm:p-4">
+                        <div id="chain-grid" class="grid grid-cols-4 grid-rows-4" style="gap: 2cqi; aspect-ratio: 1/1; height: 100%; max-height: 100%; max-width: 100%; margin: auto;">
+                            <!-- JS 動態生成 16 格 S 型網格 -->
+                        </div>
+                    </div>
+                    
+                    <div id="chain-message" class="absolute top-4 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg font-bold opacity-0 transition-opacity whitespace-nowrap pointer-events-none z-20 shadow-lg text-sm sm:text-base border-2 border-slate-900 shadow-[2px_2px_0px_#0f172a]"></div>
+                </div>
+
+                <!-- 右側：資訊與控制 (40%) -->
+                <div class="w-full md:w-[40%] flex flex-col gap-4 min-h-[200px] md:min-h-0 flex-shrink-0">
+                    <div class="arcade-border bg-white p-4 flex-1 flex flex-col min-h-0">
+                        <div class="flex justify-between items-center mb-3 border-b-4 border-slate-200 pb-2 flex-shrink-0">
+                            <span class="font-black text-base sm:text-lg text-slate-600">當前進度</span>
+                            <span class="text-2xl sm:text-3xl font-black text-cyan-600 num-font"><span id="chain-count">0</span><span class="text-xs sm:text-sm text-slate-400 font-bold ml-1">/ 14 (8過關)</span></span>
+                        </div>
+                        
+                        <div class="flex-1 overflow-y-auto min-h-0 pr-2">
+                            <span class="font-bold text-slate-500 text-xs sm:text-sm mb-2 block">您的接龍路徑：</span>
+                            <div id="chain-path-display" class="flex flex-wrap gap-2 text-base sm:text-lg font-bold num-font text-slate-800">
+                                <span class="text-slate-400">請點擊黃色虛線框並輸入質數...</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 flex gap-2 flex-shrink-0">
+                            <button id="btn-chain-hint" class="arcade-btn bg-yellow-400 hover:bg-yellow-300 text-slate-900 px-3 py-3 flex-1 text-sm font-bold">💡 提示</button>
+                            <button id="btn-chain-undo" class="arcade-btn bg-white hover:bg-slate-100 text-slate-900 px-3 py-3 flex-1 text-sm font-bold">↩ 悔棋</button>
+                        </div>
+                    </div>
+
+                    <button id="btn-to-stage-2" class="flex-shrink-0 arcade-btn bg-green-500 hover:bg-green-400 text-white font-black text-lg sm:text-xl py-3 hidden-stage animate-bounce">
+                        🎉 前往下一關 ➡️
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="stage-2" class="hidden-stage fade-in flex flex-col w-full h-full min-h-0">
+            <div class="text-center mb-2 bg-white p-2 sm:p-3 arcade-border w-full flex-shrink-0">
+                <h2 class="text-lg sm:text-2xl font-black mb-1 flex items-center justify-center gap-2 text-cyan-600">
+                    ⚙️ 第二關：質因數分解機
+                </h2>
+                <p class="text-slate-700 font-bold text-xs sm:text-sm">每次找入一個「質因數」，慢慢將數字分解到剩下 1 為止。</p>
+            </div>
+
+            <!-- 難度選擇 -->
+            <div id="s2-mode-selection" class="flex-1 flex items-center justify-center min-h-0">
+                <div class="arcade-border bg-white p-6 sm:p-8 max-w-2xl w-full text-center mx-4">
+                    <h3 class="text-xl sm:text-2xl font-black mb-6">您對「質數」熟悉嗎？</h3>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <button id="btn-need-hints" class="arcade-btn bg-yellow-400 hover:bg-yellow-300 text-slate-900 py-4 px-4 text-lg flex-1">
+                            😅 我不太熟<br><span class="text-sm font-bold opacity-80">(樹狀圖模式 + 質數點選)</span>
+                        </button>
+                        <button id="btn-no-hints" class="arcade-btn bg-cyan-500 hover:bg-cyan-400 text-white py-4 px-4 text-lg flex-1">
+                            😎 我很熟<br><span class="text-sm font-bold opacity-90">(直接線性分解)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 第二關遊戲區：強制 md 尺寸以上左右並排 -->
+            <div id="s2-gameplay" class="hidden-stage flex-1 min-h-0 flex flex-col md:flex-row gap-4 w-full pb-4">
+                <!-- 左側：控制與提示 (固定寬度佔比) -->
+                <div class="w-full md:w-[35%] md:min-w-[280px] flex flex-col gap-3 min-h-0">
+                    <div class="arcade-border bg-white p-3 sm:p-4 flex-shrink-0">
+                        <h3 class="font-black text-base mb-2 border-b-4 border-slate-200 pb-2 text-slate-700">🎯 產生目標數值</h3>
+                        <div class="flex flex-col gap-2">
+                            <button id="btn-gen-easy" class="arcade-btn bg-cyan-100 hover:bg-cyan-200 text-cyan-900 py-2 text-sm font-bold">產生基礎題 (50以內)</button>
+                            <button id="btn-gen-hard" class="arcade-btn bg-cyan-100 hover:bg-cyan-200 text-cyan-900 py-2 text-sm font-bold">產生進階題 (50~200)</button>
+                            <div class="flex mt-1 gap-2">
+                                <input type="number" inputmode="none" id="s2-custom-num" placeholder="手動輸入..." class="arcade-input flex-grow px-3 text-sm min-w-0 py-1">
+                                <button id="btn-start-factor" class="arcade-btn bg-cyan-600 hover:bg-cyan-500 text-white px-3 text-sm">開始</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="s2-message-box" class="arcade-border p-3 hidden-stage flex-shrink-0">
+                        <p id="s2-message-text" class="font-black text-sm text-center"></p>
+                    </div>
+
+                    <!-- 質數提示區塊：若太長允許內部捲動 -->
+                    <div id="prime-hints-bar" class="hidden-stage arcade-border bg-yellow-50 p-3 sm:p-4 flex-1 min-h-0 overflow-y-auto">
+                        <div class="font-black text-slate-700 mb-2 text-sm">💡 質數原料提示 <span class="text-xs text-slate-500 font-normal">(點擊自動帶入)</span></div>
+                        <div class="flex flex-wrap gap-2" id="hint-bubbles-container"></div>
+                    </div>
+                </div>
+
+                <!-- 右側：分解區 (佔據剩餘空間) -->
+                <div class="w-full md:flex-1 flex flex-col min-h-0">
+                    <div class="arcade-border bg-white p-3 sm:p-4 flex-1 flex flex-col min-h-0 relative">
+                        <div class="flex justify-between items-end mb-2 border-b-4 border-slate-200 pb-2 flex-shrink-0">
+                            <div>
+                                <span class="text-xs font-black text-slate-400 block mb-1">目前待分解數值</span>
+                                <span id="s2-current-num" class="text-3xl sm:text-4xl font-black text-cyan-600 num-font leading-none">--</span>
+                            </div>
+                        </div>
+
+                        <!-- 樹狀圖模式容器：內部可捲動 -->
+                        <div id="s2-tree-area" class="hidden-stage flex-1 min-h-0 bg-slate-50 rounded-xl mb-2 border-4 border-slate-200 relative overflow-y-auto flex flex-col items-center pt-6" style="background-image: radial-gradient(#cbd5e1 2px, transparent 2px); background-size: 20px 20px;">
+                        </div>
+
+                        <!-- 線性模式容器：內部可捲動 -->
+                        <div id="s2-linear-area" class="hidden-stage flex-1 flex flex-col min-h-0">
+                            <div id="s2-history" class="flex-1 min-h-0 bg-slate-50 rounded-xl p-4 mb-3 text-xl sm:text-2xl num-font font-black text-slate-700 border-4 border-slate-200 overflow-y-auto break-words flex flex-wrap items-center gap-2 content-start"></div>
+                            
+                            <div id="s2-action-area" class="flex-shrink-0 opacity-50 pointer-events-none transition-opacity duration-300">
+                                <div id="s2-step-prime" class="bg-cyan-50 p-3 rounded-xl border-4 border-cyan-200">
+                                    <label class="block font-black text-cyan-800 mb-2 text-sm">1. 請輸入質因數：</label>
+                                    <form id="form-prime" class="flex gap-2">
+                                        <input type="number" inputmode="none" id="input-prime" class="arcade-input flex-grow px-3 py-2 text-base sm:text-lg min-w-0" placeholder="例如: 2, 3, 5...">
+                                        <button type="submit" class="arcade-btn bg-cyan-600 hover:bg-cyan-500 text-white px-4 text-base font-bold">分解</button>
+                                    </form>
+                                </div>
+                                <div id="s2-step-quotient" class="hidden-stage bg-emerald-50 p-3 rounded-xl border-4 border-emerald-200 mt-2">
+                                    <label class="block font-black text-emerald-800 mb-2 text-sm">2. 請問剩下的商數是多少？</label>
+                                    <form id="form-quotient" class="flex items-center gap-2">
+                                        <div class="text-lg font-black text-slate-700 num-font flex-shrink-0">
+                                            <span id="hint-original">--</span> = <span id="hint-prime" class="text-cyan-600">--</span> ×
+                                        </div>
+                                        <input type="number" inputmode="none" id="input-quotient" class="arcade-input w-20 px-2 py-2 text-lg text-center text-emerald-700 min-w-0" placeholder="?">
+                                        <button type="submit" class="arcade-btn bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-2 text-sm sm:text-base whitespace-nowrap font-bold">確認</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button id="btn-to-stage-3" class="hidden-stage flex-shrink-0 arcade-btn bg-purple-500 hover:bg-purple-400 text-white font-black text-lg py-3 w-full mt-2 animate-bounce">
+                            🎉 分解完成！合成標準分解式 ➡️
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="stage-3" class="hidden-stage fade-in flex flex-col w-full h-full min-h-0">
+            <div class="text-center mb-2 bg-white p-2 sm:p-3 arcade-border w-full flex-shrink-0">
+                <h2 class="text-lg sm:text-2xl font-black mb-1 flex items-center justify-center gap-2 text-purple-600">
+                    🧬 第三關：標準分解式合成器
+                </h2>
+                <p class="text-slate-700 font-bold text-xs sm:text-sm">將剛才找到的所有質因數，<span class="text-purple-600">由小到大</span>排列，並轉換成次方的形式。</p>
+            </div>
+
+            <!-- 第三關主版面：單一緊湊區塊 -->
+            <div class="flex-1 arcade-border bg-white p-3 sm:p-4 flex flex-col min-h-0 relative mb-2 sm:mb-4">
+                
+                <!-- 上方：緊湊的質因數清單 Chips -->
+                <div class="bg-slate-50 border-4 border-slate-200 p-2 mb-3 rounded-lg flex flex-col items-center flex-shrink-0">
+                    <span class="text-xs font-black text-slate-500 mb-1">分解出的質因數清單</span>
+                    <div id="s3-raw-factors" class="flex flex-wrap justify-center gap-1.5 sm:gap-2">
+                        <!-- JS 注入 Chips -->
+                    </div>
+                </div>
+
+                <!-- 中間：合成操作區 (新增外包裝容器解決標題裁切問題) -->
+                <div class="flex-1 flex flex-col min-h-0 relative mt-4">
+                    <!-- 絕對定位標題放置於捲動容器外，避免被裁切 -->
+                    <div class="absolute -top-3 left-4 bg-purple-300 text-purple-900 border-2 border-purple-900 px-3 py-0.5 text-xs font-black shadow-[2px_2px_0px_#0f172a] z-10">合成區</div>
+                    
+                    <!-- 實際捲動區域 -->
+                    <div class="flex-1 bg-purple-50 p-3 sm:p-4 rounded-lg border-4 border-purple-200 flex flex-col min-h-0 overflow-y-auto pt-5">
+                        <form id="form-standard" class="flex flex-col items-center flex-1 justify-center">
+                            <div id="s3-input-container" class="flex flex-wrap items-center justify-center gap-x-2 gap-y-5 w-full mb-4">
+                                <!-- JS 注入 Input Terms -->
+                            </div>
+                            
+                            <div id="s3-buttons-bar" class="flex gap-2 w-full max-w-sm mt-auto flex-shrink-0">
+                                 <button type="button" id="btn-add-term" class="arcade-btn bg-white hover:bg-slate-50 text-slate-700 py-2 flex-1 text-sm font-bold">
+                                    ➕ 新增乘項
+                                </button>
+                                <button type="submit" id="btn-verify-ans" class="arcade-btn bg-purple-600 hover:bg-purple-500 text-white py-2 flex-1 text-sm font-bold">
+                                    ✨ 驗證答案
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- 底部：結果回饋區 (過關後顯示) -->
+                <div id="s3-feedback" class="hidden-stage mt-3 p-3 arcade-border flex-shrink-0 text-center flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div class="text-left flex-1">
+                        <h3 id="s3-feedback-title" class="text-base sm:text-lg font-black mb-0.5"></h3>
+                        <p id="s3-feedback-desc" class="text-slate-700 font-bold text-xs sm:text-sm"></p>
+                    </div>
+                    <div id="s3-success-actions" class="hidden-stage flex-shrink-0 w-full sm:w-auto flex flex-col sm:flex-row gap-2">
+                        <button id="btn-restart-all" class="w-full arcade-btn bg-pink-500 hover:bg-pink-400 text-white py-2 px-4 text-sm font-bold whitespace-nowrap">
+                            🔄 回第二關
+                        </button>
+                        <button id="btn-s3-advanced" class="w-full arcade-btn bg-yellow-400 hover:bg-yellow-300 text-slate-900 py-2 px-4 text-sm font-bold keypad-flash whitespace-nowrap">
+                            🔥 進階挑戰！
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 鍵盤氣泡提示 -->
+    <div id="keypad-hint-container" class="fixed bottom-6 right-20 z-40 flex items-center animate-bounce transition-opacity duration-300">
+        <div class="bg-slate-800 text-white text-xs sm:text-sm font-bold py-1.5 px-3 rounded-lg shadow-lg relative">
+            請點我開啟數字鍵盤
+            <!-- 箭頭 -->
+            <div class="absolute top-1/2 -right-1 transform -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
+        </div>
+    </div>
+
+    <!-- 鍵盤按鈕加上 keypad-flash 閃爍特效 -->
+    <button id="btn-toggle-keypad" class="fixed bottom-4 right-4 z-40 arcade-btn bg-yellow-400 hover:bg-yellow-300 text-slate-900 p-3 rounded-full shadow-[4px_4px_0px_#0f172a] text-xl transition-transform hover:scale-110 keypad-flash" onclick="toggleKeypad()" title="開關數字鍵盤">⌨️</button>
+
+    <div id="floating-keypad" class="fixed hidden-stage flex-col bg-cyan-50 arcade-border z-50 shadow-[8px_8px_0px_#0f172a]" style="transform-origin: top left; transform: scale(1); width: 220px; touch-action: none;">
+        <!-- 四角縮放控制點 -->
+        <div class="resize-handle nw" data-corner="nw"></div>
+        <div class="resize-handle ne" data-corner="ne"></div>
+        <div class="resize-handle sw" data-corner="sw"></div>
+        <div class="resize-handle se" data-corner="se"></div>
+
+        <!-- 拖曳標題列 -->
+        <div id="keypad-header" class="bg-slate-800 text-white p-2 flex justify-between items-center cursor-move border-b-4 border-slate-900 select-none rounded-t-lg">
+            <span class="font-black text-xs tracking-widest pl-1 flex items-center gap-1">⌨️ 數字鍵盤</span>
+            <div class="flex gap-1 z-10">
+                <button type="button" class="bg-rose-500 hover:bg-rose-400 text-white w-5 h-5 rounded flex items-center justify-center font-black border-2 border-slate-900 text-[10px]" onclick="toggleKeypad()" title="關閉">X</button>
+            </div>
+        </div>
+        
+        <div id="keypad-body" class="p-2 grid grid-cols-3 gap-1.5 bg-white rounded-b-lg">
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('7')">7</button>
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('8')">8</button>
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('9')">9</button>
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('4')">4</button>
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('5')">5</button>
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('6')">6</button>
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('1')">1</button>
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('2')">2</button>
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('3')">3</button>
+            <button type="button" class="arcade-btn bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-black py-1.5" onclick="typeKeypad('C')">清除</button>
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('0')">0</button>
+            <button type="button" class="arcade-btn bg-orange-100 hover:bg-orange-200 text-orange-700 text-base font-black py-1.5" onclick="typeKeypad('backspace')">⌫</button>
+            <button type="button" class="arcade-btn bg-green-500 hover:bg-green-400 text-white text-sm font-black py-2 col-span-3 tracking-widest" onclick="typeKeypad('enter')">↵ 確認 (Enter)</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 導覽與關卡切換 ---
+        const navSteps = [document.getElementById('nav-step-1'), document.getElementById('nav-step-2'), document.getElementById('nav-step-3')];
+        const stages = [document.getElementById('stage-1'), document.getElementById('stage-2'), document.getElementById('stage-3')];
+        let currentStage = 1;
+
+        function isPrime(num) {
+            if (num <= 1) return false;
+            if (num <= 3) return true;
+            if (num % 2 === 0 || num % 3 === 0) return false;
+            for (let i = 5; i * i <= num; i = i + 6) {
+                if (num % i === 0 || num % (i + 2) === 0) return false;
+            }
+            return true;
+        }
+
+        function updateNavState(targetStage) {
+            navSteps.forEach((step, idx) => {
+                const numCircle = step.querySelector('div');
+                step.className = "flex items-center gap-1 sm:gap-2 transition-colors cursor-pointer hover:bg-slate-50 p-1 rounded-lg ";
+                numCircle.className = "w-6 h-6 sm:w-8 sm:h-8 rounded-full border-4 border-current flex items-center justify-center font-black ";
+                if (idx + 1 < targetStage) {
+                    step.classList.add("text-green-600"); numCircle.classList.add("bg-green-100");
+                    numCircle.style.boxShadow = "2px 2px 0px #0f172a"; numCircle.innerHTML = "✔";
+                } else if (idx + 1 === targetStage) {
+                    step.classList.add("text-pink-600"); numCircle.classList.add("bg-pink-100");
+                    numCircle.style.boxShadow = "2px 2px 0px #0f172a"; numCircle.innerHTML = idx + 1;
+                } else {
+                    step.classList.add("text-slate-400"); numCircle.classList.add("bg-white");
+                    numCircle.style.boxShadow = "none"; numCircle.innerHTML = idx + 1;
+                }
+            });
+        }
+
+        function markNavCompleted(stageIdx) {
+            const step = navSteps[stageIdx - 1];
+            const numCircle = step.querySelector('div');
+            step.className = "flex items-center gap-1 sm:gap-2 text-green-600 transition-colors cursor-pointer hover:bg-slate-50 p-1 rounded-lg";
+            numCircle.className = "w-6 h-6 sm:w-8 sm:h-8 rounded-full border-4 border-current flex items-center justify-center bg-green-100 font-black";
+            numCircle.style.boxShadow = "2px 2px 0px #0f172a"; numCircle.innerHTML = "✔";
+        }
+
+        function jumpToStage(targetStageIndex) {
+            updateNavState(targetStageIndex);
+            stages.forEach((stage, idx) => {
+                if (idx + 1 === targetStageIndex) {
+                    stage.classList.remove('hidden-stage', 'fade-in');
+                    void stage.offsetWidth; 
+                    stage.classList.add('fade-in');
+                } else {
+                    stage.classList.add('hidden-stage');
+                }
+            });
+            currentStage = targetStageIndex;
+            
+            if(targetStageIndex === 1) { initStage1(); }
+            else if(targetStageIndex === 2) {
+                document.getElementById('s2-mode-selection').classList.remove('hidden-stage');
+                document.getElementById('s2-gameplay').classList.add('hidden-stage');
+                initStage2(); 
+            }
+            else if(targetStageIndex === 3) {
+                if (!s2CollectedPrimes || s2CollectedPrimes.length === 0) { s2CollectedPrimes = [2, 2, 3]; }
+                initStage3();
+            }
+        }
+
+        function playErrorAnim(elementId) {
+            const el = document.getElementById(elementId);
+            if(!el) return;
+            el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+        }
+
+        // --- STREAMING_CHUNK:Stage 1 (Prime Chain) Logic... ---
+        // 對應截圖的 16 格視覺陣列，vId 為畫面的 index (0~15)
+        const VISUAL_CELLS = [
+            { vId: 0, badge: 1, arrow: 'right' }, { vId: 1, badge: 2, arrow: 'right' }, { vId: 2, badge: 3, arrow: 'right' }, { vId: 3, badge: 4, arrow: 'down' },
+            { vId: 7, badge: 5, arrow: 'left' }, { vId: 6, badge: 6, isText: true, text: '很棒<br>加油', arrow: 'left' }, { vId: 5, badge: 7, arrow: 'left' }, { vId: 4, badge: 8, arrow: 'down' },
+            { vId: 8, badge: 9, arrow: 'right' }, { vId: 9, badge: 10, isText: true, text: '很棒<br>加油', arrow: 'right' }, { vId: 10, badge: 11, arrow: 'right' }, { vId: 11, badge: 12, arrow: 'down' },
+            { vId: 15, badge: 13, arrow: 'left' }, { vId: 14, badge: 14, arrow: 'left' }, { vId: 13, badge: 15, arrow: 'left' }, { vId: 12, badge: 16, arrow: '' }
+        ];
+        const PLAYABLE_ORDER = [0, 1, 2, 3, 7, 5, 4, 8, 10, 11, 15, 14, 13, 12];
+        const TARGET_CHAIN_LENGTH = 8;
+        const MAX_CHAIN_LENGTH = 14;
+
+        let chainGrid = Array(16).fill(null); 
+        let chainPath = []; 
+        let stage1Typing = ''; 
+
+        const chainGridEl = document.getElementById('chain-grid');
+        const chainMsg = document.getElementById('chain-message');
+        const chainCountEl = document.getElementById('chain-count');
+        const chainPathDisplay = document.getElementById('chain-path-display');
+        const btnToStage2 = document.getElementById('btn-to-stage-2');
+
+        function initStage1() {
+            chainGrid = Array(16).fill(null);
+            chainPath = [];
+            stage1Typing = '';
+            updateChainUI();
+            btnToStage2.classList.add('hidden-stage');
+        }
+
+        function showChainMsg(text, isError = false) {
+            chainMsg.innerHTML = text;
+            chainMsg.className = `absolute top-2 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg font-black text-sm border-2 border-slate-900 shadow-[2px_2px_0px_#0f172a] z-20 transition-opacity whitespace-nowrap ${isError ? 'bg-rose-500 text-white' : 'bg-green-400 text-slate-900'}`;
+            chainMsg.style.opacity = '1';
+            setTimeout(() => { chainMsg.style.opacity = '0'; }, 2500);
+        }
+
+        function handleChainCellClick(vId) {
+            if (!PLAYABLE_ORDER.includes(vId)) return;
+            const pathIdx = chainPath.indexOf(vId);
+            
+            if (pathIdx !== -1) {
+                // 悔棋
+                const removed = chainPath.slice(pathIdx);
+                removed.forEach(idx => { chainGrid[idx] = null; });
+                chainPath = chainPath.slice(0, pathIdx);
+                stage1Typing = '';
+                updateChainUI();
+            } else if (vId === PLAYABLE_ORDER[chainPath.length]) {
+                stage1Typing = '';
+                updateChainUI();
+            } else { 
+                showChainMsg("請依照接龍路線順序填寫格子喔！", true); 
+            }
+        }
+
+        function updateChainUI() {
+            chainGridEl.innerHTML = '';
+            
+            VISUAL_CELLS.forEach(cell => {
+                const i = cell.vId;
+                const val = chainGrid[i];
+                const isPlayable = PLAYABLE_ORDER.includes(i);
+                const isSelected = (isPlayable && PLAYABLE_ORDER[chainPath.length] === i);
+                
+                let bgClass = 'bg-white', borderClass = 'border-slate-300', pulseClass = '', cursorClass = 'cursor-pointer';
+                let displayHTML = '';
+
+                if (cell.isText) {
+                    bgClass = 'bg-blue-500 text-white'; borderClass = 'border-blue-800'; cursorClass = 'cursor-default pointer-events-none';
+                    displayHTML = `<span class="cell-text-small font-bold">${cell.text}</span>`;
+                } else if (val !== null) {
+                    bgClass = 'bg-cyan-500 text-white'; borderClass = 'border-cyan-800';
+                    displayHTML = `<span class="cell-text font-black num-font">${val}</span>`;
+                } else if (isSelected) {
+                    bgClass = 'bg-yellow-200'; borderClass = 'border-yellow-500'; pulseClass = 'animate-pulse border-dashed border-4';
+                    displayHTML = `<span class="cell-text font-black num-font text-slate-800">${stage1Typing || '<span class="opacity-50">_</span>'}</span>`;
+                }
+
+                let arrowClass = cell.arrow ? `arrow-${cell.arrow}` : '';
+
+                const cellHTML = `
+                    <div class="relative w-full h-full ${arrowClass}">
+                        <div class="absolute cell-badge bg-rose-500 text-white rounded-full flex items-center justify-center border-slate-900 font-black z-20 shadow-sm border-solid" style="border-width: 0.5cqi;">${cell.badge}</div>
+                        <button onclick="handleChainCellClick(${i})" class="arcade-btn w-full h-full absolute inset-0 flex items-center justify-center text-center ${bgClass} ${borderClass} ${pulseClass} ${cursorClass} z-10 p-1" style="border-width: 0.8cqi;">
+                            ${displayHTML}
+                        </button>
+                    </div>
+                `;
+                chainGridEl.insertAdjacentHTML('beforeend', cellHTML);
+            });
+
+            chainCountEl.textContent = chainPath.length;
+            if (chainPath.length === 0) {
+                chainPathDisplay.innerHTML = '<span class="text-slate-400">請點擊黃色虛線框並輸入質數...</span>';
+            } else {
+                const pathStrs = chainPath.map(idx => `<span class="bg-cyan-100 text-cyan-800 px-2 py-0.5 rounded arcade-border border-2 text-sm sm:text-base">${chainGrid[idx]}</span>`);
+                chainPathDisplay.innerHTML = pathStrs.join(' <span class="text-slate-400">→</span> ');
+            }
+
+            if (chainPath.length >= TARGET_CHAIN_LENGTH) btnToStage2.classList.remove('hidden-stage');
+            else btnToStage2.classList.add('hidden-stage');
+        }
+
+        // 綁定全局實體鍵盤事件
+        document.addEventListener('keydown', (e) => {
+            if (currentStage !== 1) return;
+            if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+
+            if (e.key >= '0' && e.key <= '9') {
+                stage1Typing = (stage1Typing + e.key).slice(0, 3);
+                updateChainUI();
+            } else if (e.key === 'Backspace') {
+                stage1Typing = stage1Typing.slice(0, -1);
+                updateChainUI();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                processChainInput();
+            } else if (e.key.toLowerCase() === 'c' || e.key === 'Escape') {
+                stage1Typing = '';
+                updateChainUI();
+            }
+        });
+
+        function processChainInput() {
+            if (chainPath.length >= MAX_CHAIN_LENGTH) { showChainMsg("棋盤已滿！終極挑戰達成！", false); return; }
+            if (!stage1Typing) return; 
+            
+            const val = parseInt(stage1Typing);
+
+            if (isNaN(val) || val < 2 || val > 100) { showChainMsg("請輸入 1~100 內的質數！", true); stage1Typing=''; updateChainUI(); return; }
+            if (!isPrime(val)) { showChainMsg(`${val} 不是質數喔！`, true); stage1Typing=''; updateChainUI(); return; }
+            if (chainPath.some(idx => chainGrid[idx] === val)) { showChainMsg("質數重複了！不能用一樣的數字。", true); stage1Typing=''; updateChainUI(); return; }
+
+            if (chainPath.length > 0) {
+                const lastPrime = chainGrid[chainPath[chainPath.length - 1]];
+                if ((lastPrime % 10).toString() !== val.toString()[0]) {
+                    showChainMsg(`必須以數字 ${lastPrime % 10} 開頭！`, true); 
+                    playErrorAnim('chain-grid'); stage1Typing=''; updateChainUI(); return;
+                }
+            }
+
+            const nextIdx = PLAYABLE_ORDER[chainPath.length];
+            chainGrid[nextIdx] = val;
+            chainPath.push(nextIdx);
+            stage1Typing = '';
+            updateChainUI();
+            
+            if (chainPath.length === MAX_CHAIN_LENGTH) showChainMsg("🎉 14格全滿！你太強了！終極挑戰成功！", false);
+            else if (chainPath.length === TARGET_CHAIN_LENGTH) showChainMsg("🎯 達成 8 個過關條件！可前往下一關，或繼續填滿！", false);
+            else showChainMsg("讚！繼續接下去！");
+        }
+
+        document.getElementById('btn-chain-undo').addEventListener('click', () => {
+            if(chainPath.length > 0) { const lastIdx = chainPath.pop(); chainGrid[lastIdx] = null; stage1Typing = ''; updateChainUI(); }
+        });
+
+        document.getElementById('btn-chain-hint').addEventListener('click', () => {
+            if(chainPath.length === 0) showChainMsg("第一格可以隨意填入 2, 3, 5, 7, 11...");
+            else showChainMsg(`請找開頭是數字 ${chainGrid[chainPath[chainPath.length - 1]] % 10} 的質數！`);
+        });
+        
+        btnToStage2.addEventListener('click', () => { jumpToStage(2); });
+        
+        // 初始啟動第一關
+        initStage1();
+
+
+        // --- STREAMING_CHUNK:Stage 2 (Factorization) Logic... ---
+        let s2OriginalNum = 0, s2CurrentNum = 0, s2CollectedPrimes = [], s2TempPrime = 0, s2HasHints = false;
+        let s2TreeRoot = null, s2TreeActiveNode = null;
+
+        const s2CurrentNumDisplay = document.getElementById('s2-current-num');
+        const btnToStage3 = document.getElementById('btn-to-stage-3');
+        const primeRawMaterials = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31];
+
+        function initStage2() {
+            document.getElementById('hint-bubbles-container').innerHTML = '';
+            primeRawMaterials.forEach(p => {
+                const btn = document.createElement('button');
+                btn.className = "arcade-btn bg-white hover:bg-yellow-200 text-slate-800 px-2 py-1 sm:px-3 sm:py-1 text-base sm:text-lg num-font border-2";
+                btn.innerText = p;
+                btn.onclick = () => { 
+                    if (s2HasHints && s2TreeActiveNode) processTreePrime(p); 
+                    else document.getElementById('input-prime').value = p; 
+                };
+                document.getElementById('hint-bubbles-container').appendChild(btn);
+            });
+        }
+
+        document.getElementById('btn-need-hints').addEventListener('click', () => startS2Gameplay(true));
+        document.getElementById('btn-no-hints').addEventListener('click', () => startS2Gameplay(false));
+
+        function startS2Gameplay(withHints) {
+            s2HasHints = withHints;
+            document.getElementById('s2-mode-selection').classList.add('hidden-stage');
+            document.getElementById('s2-gameplay').classList.remove('hidden-stage'); 
+            
+            if(withHints) {
+                document.getElementById('prime-hints-bar').classList.remove('hidden-stage');
+                document.getElementById('s2-tree-area').classList.remove('hidden-stage');
+                document.getElementById('s2-linear-area').classList.add('hidden-stage');
+            } else {
+                document.getElementById('prime-hints-bar').classList.add('hidden-stage');
+                document.getElementById('s2-tree-area').classList.add('hidden-stage');
+                document.getElementById('s2-linear-area').classList.remove('hidden-stage');
+            }
+            document.getElementById('btn-gen-easy').click();
+        }
+
+        function showS2Message(text, isError = true) {
+            const box = document.getElementById('s2-message-box');
+            const textEl = document.getElementById('s2-message-text');
+            box.classList.remove('hidden-stage', 'bg-rose-100', 'bg-green-100', 'border-rose-400', 'border-green-400');
+            textEl.className = `font-black text-xs sm:text-sm text-center ${isError ? 'text-rose-700' : 'text-green-700'}`;
+            box.classList.add(isError ? 'bg-rose-100' : 'bg-green-100', isError ? 'border-rose-400' : 'border-green-400');
+            textEl.textContent = text;
+            if(isError) playErrorAnim('s2-message-box');
+        }
+
+        function startFactorization(num) {
+            if (isNaN(num) || num <= 1) { showS2Message('請輸入大於 1 的整數。', true); return; }
+            if (isPrime(num)) { showS2Message(`${num} 已經是質數囉，無法再分解！`, true); return; }
+
+            s2OriginalNum = num; s2CurrentNum = num; s2CollectedPrimes = [];
+            document.getElementById('s2-message-box').classList.add('hidden-stage');
+            btnToStage3.classList.add('hidden-stage');
+            s2CurrentNumDisplay.textContent = num;
+            
+            if (s2HasHints) {
+                s2TreeRoot = { val: num, isPrime: false, left: {val: '?', isPrime: true}, right: {val: '?', isPrime: false} };
+                s2TreeActiveNode = s2TreeRoot;
+                updateTreeUI();
+                showS2Message("請從左下方「質數原料」點選一個可以整除的質數！", false);
+            } else {
+                document.getElementById('s2-action-area').classList.remove('opacity-50', 'pointer-events-none');
+                updateLinearUI(); resetLinearInputs();
+            }
+        }
+
+        function renderTreeNode(node, isActive) {
+            if (!node) return '';
+            
+            let isWaitingPrime = node.val === '?' && node.isPrime;
+            let isWaitingQuot = node.val === '?' && !node.isPrime;
+
+            let nodeHtml = '';
+            if (isWaitingQuot) {
+                nodeHtml = `
+                <div class="z-20 bg-white p-1 sm:p-2 arcade-border rounded-xl shadow-xl transform scale-110 flex items-center gap-1 relative border-yellow-400 border-4 animate-pulse">
+                    <input type="number" inputmode="none" id="tree-quotient-input" class="arcade-input w-12 sm:w-16 h-8 sm:h-10 text-lg sm:text-xl text-center bg-emerald-100 text-emerald-900 border-2" placeholder="?">
+                    <button id="tree-quotient-btn" class="bg-emerald-500 hover:bg-emerald-400 text-white rounded w-8 sm:w-10 h-8 sm:h-10 text-sm sm:text-lg font-black border-2 border-slate-900">✔</button>
+                </div>`;
+            } else if (isWaitingPrime) {
+                nodeHtml = `<div class="z-20 bg-white/60 rounded-full border-4 border-dashed border-pink-400 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center animate-pulse shadow-sm relative"><span class="text-pink-500 text-[10px] sm:text-xs font-bold text-center leading-tight">等待<br>質數</span></div>`;
+            } else {
+                let bgClass = node.isPrime ? 'bg-pink-300' : 'bg-cyan-100';
+                let shapeClass = node.isPrime ? 'rounded-full' : 'rounded-2xl';
+                let activeClass = (isActive && !node.isPrime && (!node.left || node.left.val==='?')) ? 'ring-4 ring-yellow-400 scale-105' : '';
+                nodeHtml = `<div class="z-20 relative ${bgClass} ${shapeClass} ${activeClass} border-4 border-slate-900 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center text-xl sm:text-2xl font-black shadow-[4px_4px_0px_#0f172a] num-font text-slate-800">${node.val}</div>`;
+            }
+
+            if (!node.left && !node.right) {
+                return `<div class="tree-line-wrapper"><div class="flex flex-col items-center">${nodeHtml}</div></div>`;
+            }
+
+            return `
+            <div class="tree-line-wrapper">
+                <div class="flex flex-col items-center">
+                    ${nodeHtml}
+                    <div class="w-[80px] sm:w-[140px] h-4 sm:h-6 flex relative z-0 mt-[-2px]">
+                        <div class="w-1/2 border-t-4 border-l-4 border-slate-900 rounded-tl-xl"></div>
+                        <div class="w-1/2 border-t-4 border-r-4 border-slate-900 rounded-tr-xl"></div>
+                    </div>
+                    <div class="w-[80px] sm:w-[140px] flex justify-between mt-[-4px]">
+                        ${renderTreeNode(node.left, false)}
+                        ${renderTreeNode(node.right, false)}
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function updateTreeUI() {
+            const container = document.getElementById('s2-tree-area');
+            container.innerHTML = `<div class="p-2 sm:p-4 pb-20 w-full flex justify-center">${renderTreeNode(s2TreeRoot, s2TreeActiveNode === s2TreeRoot)}</div>`;
+
+            const qInput = document.getElementById('tree-quotient-input');
+            const qBtn = document.getElementById('tree-quotient-btn');
+            if (qInput && qBtn) {
+                qInput.focus();
+                const submitQuotient = () => { processTreeQuotient(parseInt(qInput.value)); };
+                qBtn.addEventListener('click', submitQuotient);
+                qInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') submitQuotient(); });
+            }
+            s2CurrentNumDisplay.textContent = s2TreeActiveNode ? s2TreeActiveNode.val : '--';
+        }
+
+        function processTreePrime(p) {
+            if (!s2TreeActiveNode || s2TreeActiveNode.left.val !== '?') return;
+            if (s2TreeActiveNode.val % p !== 0) {
+                showS2Message(`${p} 不能整除 ${s2TreeActiveNode.val} 喔！`, true); playErrorAnim('s2-tree-area'); return;
+            }
+            document.getElementById('s2-message-box').classList.add('hidden-stage');
+            s2TreeActiveNode.left.val = p; 
+            updateTreeUI();
+            showS2Message(`很棒！請計算 ${s2TreeActiveNode.val} ÷ ${p} 的商數，並填入右邊方框中。`, false);
+        }
+
+        function processTreeQuotient(q) {
+            if (isNaN(q)) { showS2Message('請填寫商數數字！', true); return; }
+            const expectedP = s2TreeActiveNode.left.val;
+            if (expectedP * q !== s2TreeActiveNode.val) {
+                showS2Message(`${expectedP} × ${q} 不等於 ${s2TreeActiveNode.val} 喔！再算算看`, true); playErrorAnim('tree-quotient-input'); return;
+            }
+
+            document.getElementById('s2-message-box').classList.add('hidden-stage');
+            s2CollectedPrimes.push(expectedP);
+            const qIsPrime = isPrime(q);
+            
+            s2TreeActiveNode.right.val = q;
+            s2TreeActiveNode.right.isPrime = qIsPrime;
+
+            if (qIsPrime) {
+                s2CollectedPrimes.push(q);
+                s2TreeActiveNode = null; 
+                updateTreeUI();
+                btnToStage3.classList.remove('hidden-stage');
+                showS2Message("🎉 分解到底了！所有的分支末端都是質數囉！", false);
+                const container = document.getElementById('s2-tree-area');
+                container.scrollTop = container.scrollHeight;
+            } else {
+                s2TreeActiveNode = s2TreeActiveNode.right; 
+                s2TreeActiveNode.left = {val: '?', isPrime: true};
+                s2TreeActiveNode.right = {val: '?', isPrime: false};
+                updateTreeUI();
+                showS2Message("請繼續從左下方點選可以整除新合數的質數！", false);
+                const container = document.getElementById('s2-tree-area');
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        function updateLinearUI() {
+            if (s2CollectedPrimes.length === 0) document.getElementById('s2-history').innerHTML = `<span class="text-slate-400 text-lg">準備開始分解...</span>`;
+            else {
+                let html = `<span class="text-slate-800">${s2OriginalNum} = <span class="text-cyan-600">${s2CollectedPrimes.join(' × ')}</span>`;
+                if (s2CurrentNum > 1) html += ` × <span class="bg-yellow-200 px-2 rounded-lg border-2 border-yellow-500">${s2CurrentNum}</span>`;
+                document.getElementById('s2-history').innerHTML = html;
+            }
+        }
+        function resetLinearInputs() {
+            document.getElementById('s2-step-prime').classList.remove('hidden-stage');
+            document.getElementById('s2-step-quotient').classList.add('hidden-stage');
+            document.getElementById('input-prime').value = ''; 
+            if(!document.getElementById('s2-gameplay').classList.contains('hidden-stage')){
+                document.getElementById('input-prime').focus();
+            }
+        }
+
+        document.getElementById('btn-gen-easy').addEventListener('click', () => { let n; do{n=Math.floor(Math.random()*38)+12;}while(isPrime(n)); startFactorization(n); });
+        document.getElementById('btn-gen-hard').addEventListener('click', () => { let n; do{n=Math.floor(Math.random()*150)+50;}while(isPrime(n)); startFactorization(n); });
+        document.getElementById('btn-start-factor').addEventListener('click', () => startFactorization(parseInt(document.getElementById('s2-custom-num').value)));
+
+        document.getElementById('form-prime').addEventListener('submit', (e) => {
+            e.preventDefault(); const p = parseInt(document.getElementById('input-prime').value);
+            if (isNaN(p) || !isPrime(p) || s2CurrentNum % p !== 0) { showS2Message('請輸入正確且能整除的質因數！', true); return; }
+            document.getElementById('s2-message-box').classList.add('hidden-stage');
+            s2TempPrime = p;
+            document.getElementById('s2-step-prime').classList.add('hidden-stage');
+            document.getElementById('s2-step-quotient').classList.remove('hidden-stage');
+            document.getElementById('hint-original').textContent = s2CurrentNum;
+            document.getElementById('hint-prime').textContent = s2TempPrime;
+            document.getElementById('input-quotient').value = ''; document.getElementById('input-quotient').focus();
+        });
+
+        document.getElementById('form-quotient').addEventListener('submit', (e) => {
+            e.preventDefault(); const q = parseInt(document.getElementById('input-quotient').value);
+            if (isNaN(q) || s2TempPrime * q !== s2CurrentNum) { showS2Message('商數計算錯誤喔！', true); return; }
+            document.getElementById('s2-message-box').classList.add('hidden-stage');
+            s2CollectedPrimes.push(s2TempPrime); s2CurrentNum = q; s2CurrentNumDisplay.textContent = q;
+            
+            if (isPrime(s2CurrentNum)) {
+                s2CollectedPrimes.push(s2CurrentNum); s2CurrentNum = 1;
+                updateLinearUI(); document.getElementById('s2-step-quotient').classList.add('hidden-stage');
+                btnToStage3.classList.remove('hidden-stage'); showS2Message("🎉 分解完成！請前往下一關。", false);
+            } else { updateLinearUI(); resetLinearInputs(); }
+        });
+        
+        btnToStage3.addEventListener('click', () => jumpToStage(3));
+
+
+        // --- STREAMING_CHUNK:Stage 3 (Standard Form) Logic... ---
+        let s3ExpectedFormat = []; 
+
+        function initStage3() {
+            const sortedPrimes = [...s2CollectedPrimes].sort((a,b)=>a-b);
+            const counts = {}; sortedPrimes.forEach(f => counts[f] = (counts[f]||0)+1);
+            s3ExpectedFormat = Object.keys(counts).map(Number).sort((a,b)=>a-b).map(b => ({ base: b, exp: counts[b] }));
+            
+            document.getElementById('s3-raw-factors').innerHTML = sortedPrimes.map((p, idx) => 
+                `<span class="inline-block bg-white arcade-border border-2 px-2 py-0.5 sm:px-3 sm:py-1 text-slate-800 font-black text-lg sm:text-xl">${p}</span>${idx < sortedPrimes.length-1 ? '<span class="text-slate-400 font-bold self-center text-xl sm:text-2xl mx-1">×</span>' : ''}`
+            ).join('');
+            
+            document.getElementById('s3-input-container').innerHTML = '';
+            document.getElementById('s3-feedback').classList.add('hidden-stage');
+            document.getElementById('s3-success-actions').classList.add('hidden-stage');
+            document.getElementById('s3-buttons-bar').classList.remove('hidden-stage');
+            
+            createInputTerm();
+        }
+
+        // 第三關：進階挑戰邏輯 (混和合數陣列拆解)
+        document.getElementById('btn-s3-advanced').addEventListener('click', () => {
+            const advancedPools = [
+                [2, 3, 4, 5, 3, 11],
+                [5, 11, 2, 9, 3],
+                [4, 6, 15, 2],
+                [8, 9, 5, 7],
+                [2, 10, 3, 6, 5],
+                [4, 4, 9, 25]
+            ];
+            const randomPool = advancedPools[Math.floor(Math.random() * advancedPools.length)];
+            
+            let allPrimes = [];
+            randomPool.forEach(num => {
+                let temp = num;
+                for (let i = 2; i <= temp; i++) {
+                    while (temp % i === 0) {
+                        allPrimes.push(i);
+                        temp /= i;
+                    }
+                }
+            });
+            
+            allPrimes.sort((a,b) => a-b);
+            const counts = {}; 
+            allPrimes.forEach(f => counts[f] = (counts[f]||0)+1);
+            s3ExpectedFormat = Object.keys(counts).map(Number).sort((a,b)=>a-b).map(b => ({ base: b, exp: counts[b] }));
+            
+            document.getElementById('s3-raw-factors').innerHTML = randomPool.map((p, idx) => 
+                `<span class="inline-block bg-yellow-100 border-yellow-400 border-4 px-2 py-0.5 sm:px-3 sm:py-1 text-slate-800 font-black text-lg sm:text-xl shadow-[2px_2px_0px_#0f172a] rounded-lg">${p}</span>${idx < randomPool.length-1 ? '<span class="text-slate-400 font-bold self-center text-xl sm:text-2xl mx-1">×</span>' : ''}`
+            ).join('');
+            
+            document.getElementById('s3-input-container').innerHTML = '';
+            document.getElementById('s3-feedback').classList.add('hidden-stage');
+            document.getElementById('s3-success-actions').classList.add('hidden-stage');
+            document.getElementById('s3-buttons-bar').classList.remove('hidden-stage');
+            
+            createInputTerm();
+        });
+
+        function createInputTerm() {
+            const termDiv = document.createElement('div');
+            termDiv.className = 'flex items-center gap-1 relative group term-group';
+            termDiv.innerHTML = `
+                <div class="flex flex-col items-center"><span class="text-[10px] font-black text-slate-500 mb-0.5">底數</span><input type="number" inputmode="none" class="base-input shadow-sm" placeholder="?"></div>
+                <div class="flex flex-col items-center"><span class="text-[10px] font-black text-slate-500 mb-0.5">次方</span><input type="number" inputmode="none" class="exp-input shadow-sm relative -top-3" placeholder="1"></div>
+                <button type="button" class="btn-remove-term absolute -right-3 -top-3 bg-rose-500 text-white border-2 border-slate-900 rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 text-xs font-bold shadow-sm">×</button>
+            `;
+            const container = document.getElementById('s3-input-container');
+            if (container.children.length > 0) {
+                const mSpan = document.createElement('span'); mSpan.className = 'mx-1 text-2xl sm:text-3xl font-black text-slate-300 self-end mb-2'; mSpan.innerHTML = '&times;';
+                container.appendChild(mSpan);
+            }
+            container.appendChild(termDiv);
+            termDiv.querySelector('.btn-remove-term').addEventListener('click', function() { termDiv.remove(); cleanupMultiplySigns(); });
+        }
+
+        function cleanupMultiplySigns() {
+            const container = document.getElementById('s3-input-container');
+            const children = Array.from(container.children); container.innerHTML = ''; let termCount = 0;
+            children.forEach(child => {
+                if (child.classList.contains('term-group')) {
+                    if (termCount > 0) {
+                        const mSpan = document.createElement('span'); mSpan.className = 'mx-1 text-2xl sm:text-3xl font-black text-slate-300 self-end mb-2'; mSpan.innerHTML = '&times;';
+                        container.appendChild(mSpan);
+                    }
+                    container.appendChild(child); termCount++;
+                }
+            });
+        }
+
+        document.getElementById('btn-add-term').addEventListener('click', createInputTerm);
+
+        document.getElementById('form-standard').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const termGroups = document.querySelectorAll('.term-group');
+            if (termGroups.length === 0) { showS3Feedback(false, "請至少新增一個乘項。"); return; }
+
+            let userAnswers = [], hasEmpty = false;
+            termGroups.forEach(group => {
+                const bVal = group.querySelector('.base-input').value;
+                const eVal = group.querySelector('.exp-input').value;
+                if (bVal.trim() === '') { hasEmpty = true; group.querySelector('.base-input').classList.add('border-rose-500'); }
+                else group.querySelector('.base-input').classList.remove('border-rose-500');
+                userAnswers.push({ base: parseInt(bVal) || 0, exp: eVal.trim() === '' ? 1 : parseInt(eVal) });
+            });
+
+            if (hasEmpty) { showS3Feedback(false, "請填寫所有的底數。"); playErrorAnim('s3-input-container'); return; }
+            if (userAnswers.length !== s3ExpectedFormat.length) { showS3Feedback(false, `項數錯誤，應該要有 ${s3ExpectedFormat.length} 個不同的底數。`); playErrorAnim('s3-input-container'); return; }
+            
+            for (let i = 0; i < userAnswers.length - 1; i++) {
+                if (userAnswers[i].base >= userAnswers[i+1].base) { showS3Feedback(false, "底數必須「由小到大」排列喔！"); playErrorAnim('s3-input-container'); return; }
+            }
+
+            let isCorrect = s3ExpectedFormat.every((exp, i) => exp.base === userAnswers[i].base && exp.exp === userAnswers[i].exp);
+            if (isCorrect) {
+                showS3Feedback(true, "太棒了！您成功寫出了正確的標準分解式！");
+                document.querySelectorAll('.base-input, .exp-input').forEach(el => el.disabled = true);
+                document.getElementById('s3-buttons-bar').classList.add('hidden-stage'); 
+                markNavCompleted(3);
+            } else {
+                showS3Feedback(false, "計算有誤，請再檢查一次底數與次數。"); playErrorAnim('s3-input-container');
+            }
+        });
+
+        function showS3Feedback(isSuccess, text) {
+            const box = document.getElementById('s3-feedback');
+            box.classList.remove('hidden-stage', 'bg-green-100', 'bg-rose-100', 'border-green-400', 'border-rose-400');
+            box.classList.add(isSuccess ? 'bg-green-100' : 'bg-rose-100', isSuccess ? 'border-green-400' : 'border-rose-400');
+            document.getElementById('s3-feedback-title').textContent = isSuccess ? "🏆 完全正確！" : "🤔 差一點點...";
+            document.getElementById('s3-feedback-title').className = `text-base sm:text-lg font-black mb-0.5 ${isSuccess ? 'text-green-700' : 'text-rose-600'}`;
+            document.getElementById('s3-feedback-desc').textContent = text;
+            if (isSuccess) document.getElementById('s3-success-actions').classList.remove('hidden-stage');
+            else document.getElementById('s3-success-actions').classList.add('hidden-stage');
+        }
+
+        document.getElementById('btn-restart-all').addEventListener('click', () => jumpToStage(2));
+
+
+        // --- STREAMING_CHUNK:Floating Keypad Logic... ---
+        const keypadEl = document.getElementById('floating-keypad');
+        let activeInput = null, keypadScale = 1;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            keypadEl.style.left = `${Math.max(10, window.innerWidth - 240)}px`;
+            keypadEl.style.top = `${Math.max(10, window.innerHeight - 340)}px`;
+        });
+
+        document.addEventListener('focusin', (e) => {
+            if (e.target.tagName === 'INPUT' && e.target.type === 'number') {
+                activeInput = e.target;
+                e.target.setAttribute('inputmode', 'none'); 
+                if (keypadEl.classList.contains('hidden-stage')) toggleKeypad();
+            }
+        });
+        keypadEl.addEventListener('mousedown', e => {
+            if(e.target.tagName !== 'BUTTON' && !e.target.classList.contains('resize-handle')) e.preventDefault();
+        });
+
+        function toggleKeypad() { 
+            keypadEl.classList.toggle('hidden-stage'); 
+            document.getElementById('btn-toggle-keypad').classList.remove('keypad-flash');
+            const hint = document.getElementById('keypad-hint-container');
+            if(hint) {
+                hint.style.opacity = '0';
+                setTimeout(() => hint.remove(), 300);
+            }
+        }
+        
+        function typeKeypad(action) {
+            if (currentStage === 1) {
+                if (action === 'C') stage1Typing = '';
+                else if (action === 'backspace') stage1Typing = stage1Typing.slice(0, -1);
+                else if (action === 'enter') processChainInput();
+                else stage1Typing = (stage1Typing + action).slice(0, 3);
+                updateChainUI();
+                return;
+            }
+
+            if (!activeInput) return;
+            if (action === 'C') activeInput.value = '';
+            else if (action === 'backspace') activeInput.value = activeInput.value.slice(0, -1);
+            else if (action === 'enter') {
+                activeInput.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter', bubbles: true }));
+                if(activeInput.form) {
+                    const submitBtn = activeInput.form.querySelector('button[type="submit"]');
+                    if(submitBtn) submitBtn.click();
+                    else activeInput.form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                }
+            } else activeInput.value += action;
+            activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        let isDragging = false, isResizing = false;
+        let dragOffset = {x:0, y:0}, currentCorner = null, startRect = {};
+        
+        const headerEl = document.getElementById('keypad-header');
+        headerEl.addEventListener('mousedown', startDrag);
+        headerEl.addEventListener('touchstart', startDrag, {passive: false});
+
+        function startDrag(e) {
+            if(e.target.tagName === 'BUTTON') return;
+            e.preventDefault();
+            isDragging = true;
+            const pt = e.type.includes('touch') ? e.touches[0] : e;
+            dragOffset.x = pt.clientX - parseFloat(keypadEl.style.left);
+            dragOffset.y = pt.clientY - parseFloat(keypadEl.style.top);
+        }
+
+        document.querySelectorAll('.resize-handle').forEach(h => {
+            h.addEventListener('mousedown', startResize);
+            h.addEventListener('touchstart', startResize, {passive: false});
+        });
+
+        function startResize(e) {
+            e.preventDefault(); e.stopPropagation();
+            isResizing = true; currentCorner = e.target.dataset.corner;
+            const pt = e.type.includes('touch') ? e.touches[0] : e;
+            startRect = { 
+                mouseX: pt.clientX, mouseY: pt.clientY, 
+                scale: keypadScale, 
+                left: parseFloat(keypadEl.style.left), 
+                top: parseFloat(keypadEl.style.top), 
+                baseWidth: keypadEl.offsetWidth 
+            };
+        }
+
+        document.addEventListener('mousemove', handleMove);
+        document.addEventListener('touchmove', handleMove, {passive: false});
+        document.addEventListener('mouseup', () => { isDragging = isResizing = false; });
+        document.addEventListener('touchend', () => { isDragging = isResizing = false; });
+
+        function handleMove(e) {
+            if(!isDragging && !isResizing) return;
+            const pt = e.type.includes('touch') ? e.touches[0] : e;
+            
+            if (isDragging) {
+                e.preventDefault();
+                let newLeft = pt.clientX - dragOffset.x;
+                let newTop = pt.clientY - dragOffset.y;
+                newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - 50));
+                newTop = Math.max(0, Math.min(newTop, window.innerHeight - 50));
+                keypadEl.style.left = `${newLeft}px`;
+                keypadEl.style.top = `${newTop}px`;
+            } 
+            else if (isResizing) {
+                e.preventDefault();
+                let dx = pt.clientX - startRect.mouseX;
+                let dy = pt.clientY - startRect.mouseY;
+                let scaleDiff = 0;
+                
+                if(currentCorner === 'se') scaleDiff = dx / startRect.baseWidth;
+                else if(currentCorner === 'sw') scaleDiff = -dx / startRect.baseWidth;
+                else if(currentCorner === 'ne') scaleDiff = dx / startRect.baseWidth;
+                else if(currentCorner === 'nw') scaleDiff = -dx / startRect.baseWidth;
+
+                let newScale = Math.max(0.7, Math.min(1.8, startRect.scale + scaleDiff));
+                keypadEl.style.transform = `scale(${newScale})`;
+                keypadScale = newScale;
+
+                let newLeft = startRect.left;
+                let newTop = startRect.top;
+                
+                if(currentCorner === 'sw' || currentCorner === 'nw') {
+                    newLeft = startRect.left - (newScale - startRect.scale) * startRect.baseWidth;
+                }
+                if(currentCorner === 'nw' || currentCorner === 'ne') {
+                    const baseHeight = keypadEl.offsetHeight;
+                    newTop = startRect.top - (newScale - startRect.scale) * baseHeight;
+                }
+                
+                keypadEl.style.left = `${newLeft}px`;
+                keypadEl.style.top = `${newTop}px`;
+            }
+        }
+    </script>
+</body>
+</html>
