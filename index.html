@@ -20,10 +20,10 @@
         }
         .num-font { font-family: 'Rubik', sans-serif; }
         
-        /* 核心隱藏類別 (加上 !important 避免被 flex 覆蓋，解決版面消失的元凶) */
+        /* 核心隱藏類別 (使用 important 強制覆蓋 flex) */
         .hidden-stage { display: none !important; }
 
-        /* 電動玩具風框線與陰影 (Neo-brutalism) */
+        /* 電動玩具風框線與陰影 */
         .arcade-border {
             border: 4px solid #0f172a;
             box-shadow: 6px 6px 0px #0f172a;
@@ -62,7 +62,7 @@
             box-shadow: inset 0 0 0 2px #eab308;
         }
 
-        /* 標準分解式專用輸入框 */
+        /* 標準分解式專用輸入框 (放大) */
         .base-input, .exp-input {
             border: 3px dashed #64748b;
             background-color: #f8fafc;
@@ -77,8 +77,8 @@
             border-style: solid;
             background-color: #fef08a;
         }
-        .base-input { width: 3.5rem; height: 3.5rem; font-size: 1.5rem; }
-        .exp-input { width: 2.5rem; height: 2.5rem; font-size: 1.25rem; }
+        .base-input { width: 4.5rem; height: 4.5rem; font-size: 2rem; }
+        .exp-input { width: 3rem; height: 3rem; font-size: 1.5rem; }
         
         /* 動畫 */
         .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
@@ -133,40 +133,49 @@
         
         /* 樹狀圖線條置中技巧 */
         .tree-line-wrapper { width: 0px; display: flex; justify-content: center; }
+        
+        /* 選項按鈕 active 樣式 */
+        .s4-opt-btn.active { box-shadow: inset 0 4px 6px rgba(0,0,0,0.2) !important; transform: translateY(2px); }
     </style>
 </head>
+<!-- 鎖死 body 與 main 的捲軸，實現 App 級全螢幕版面 -->
 <body class="h-screen w-screen overflow-hidden flex flex-col">
 
     <header class="bg-white border-b-4 border-slate-900 sticky top-0 z-20 flex-shrink-0">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center gap-2">
-            <div class="flex flex-col">
-                <h1 class="text-xl sm:text-2xl lg:text-3xl font-black tracking-wide text-slate-900 flex items-center gap-2">
+        <div class="max-w-7xl mx-auto px-2 sm:px-4 py-2 sm:py-3 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div class="flex flex-col text-center sm:text-left">
+                <h1 class="text-xl sm:text-2xl lg:text-3xl font-black tracking-wide text-slate-900 flex items-center justify-center sm:justify-start gap-2">
                     🎮 數字大挑戰
                 </h1>
                 <span class="text-[10px] sm:text-xs text-slate-500 font-bold tracking-wider mt-0.5">台南市忠孝國中數學王子蘇恭弘製作</span>
             </div>
-            <!-- 進度條導覽 -->
-            <div class="flex items-center gap-2 sm:gap-4 text-xs sm:text-base font-black tracking-wide">
-                <div id="nav-step-1" class="flex items-center gap-1 sm:gap-2 text-pink-600 transition-colors cursor-pointer hover:bg-slate-50 p-1 rounded-lg" onclick="jumpToStage(1)">
+            <!-- 進度條導覽 (包含第一~四關) -->
+            <div class="flex items-center gap-1 sm:gap-2 lg:gap-4 text-xs sm:text-base font-black tracking-wide overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 justify-center">
+                <div id="nav-step-1" class="flex items-center gap-1 sm:gap-2 text-pink-600 transition-colors cursor-pointer hover:bg-slate-50 p-1 rounded-lg flex-shrink-0" onclick="jumpToStage(1)">
                     <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-4 border-current flex items-center justify-center bg-pink-100 shadow-[2px_2px_0px_#0f172a]">1</div>
                     <span class="hidden md:inline">質數接龍</span>
                 </div>
-                <div class="w-2 sm:w-4 h-1 bg-slate-800"></div>
-                <div id="nav-step-2" class="flex items-center gap-1 sm:gap-2 text-slate-400 transition-colors cursor-pointer hover:bg-slate-50 p-1 rounded-lg" onclick="jumpToStage(2)">
+                <div class="w-2 sm:w-4 h-1 bg-slate-800 flex-shrink-0"></div>
+                <div id="nav-step-2" class="flex items-center gap-1 sm:gap-2 text-slate-400 transition-colors cursor-pointer hover:bg-slate-50 p-1 rounded-lg flex-shrink-0" onclick="jumpToStage(2)">
                     <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-4 border-current flex items-center justify-center bg-white">2</div>
                     <span class="hidden md:inline">質因數分解</span>
                 </div>
-                <div class="w-2 sm:w-4 h-1 bg-slate-800"></div>
-                <div id="nav-step-3" class="flex items-center gap-1 sm:gap-2 text-slate-400 transition-colors cursor-pointer hover:bg-slate-50 p-1 rounded-lg" onclick="jumpToStage(3)">
+                <div class="w-2 sm:w-4 h-1 bg-slate-800 flex-shrink-0"></div>
+                <div id="nav-step-3" class="flex items-center gap-1 sm:gap-2 text-slate-400 transition-colors cursor-pointer hover:bg-slate-50 p-1 rounded-lg flex-shrink-0" onclick="jumpToStage(3)">
                     <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-4 border-current flex items-center justify-center bg-white">3</div>
                     <span class="hidden md:inline">標準分解式</span>
                 </div>
-                <span class="text-[10px] text-slate-400 hidden lg:inline ml-2">(💡 點擊可跳關)</span>
+                <div class="w-2 sm:w-4 h-1 bg-slate-800 flex-shrink-0"></div>
+                <div id="nav-step-4" class="flex items-center gap-1 sm:gap-2 text-slate-400 transition-colors cursor-pointer hover:bg-slate-50 p-1 rounded-lg flex-shrink-0" onclick="jumpToStage(4)">
+                    <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-4 border-current flex items-center justify-center bg-white">4</div>
+                    <span class="hidden md:inline">動態測驗</span>
+                </div>
+                <span class="text-[10px] text-slate-400 hidden lg:inline ml-1 flex-shrink-0">(💡 點擊跳關)</span>
             </div>
         </div>
     </header>
 
-    <!-- 主容器：嚴格限制高度，不允許外層捲動 -->
+    <!-- 主容器：嚴格限制高度，禁止外層產生捲軸 -->
     <main class="flex-1 w-full max-w-7xl mx-auto p-2 sm:p-4 flex flex-col relative overflow-hidden min-h-0">
         
         <section id="stage-1" class="fade-in flex flex-col w-full h-full min-h-0">
@@ -184,8 +193,8 @@
                 <!-- 左側：S型接龍網格區 (60%) -->
                 <div class="w-full md:w-[60%] flex-1 arcade-border bg-cyan-100 p-2 sm:p-4 flex flex-col items-center justify-center relative min-h-0 overflow-hidden">
                     
-                    <!-- 16格網格容器 -->
-                    <div class="flex-1 w-full min-h-0 flex items-center justify-center p-1 sm:p-4">
+                    <!-- 16格網格容器：使用 aspect-ratio 技巧完美防溢出縮放 -->
+                    <div class="flex-1 w-full min-h-0 flex items-center justify-center p-2 sm:p-4">
                         <div id="chain-grid" class="grid grid-cols-4 grid-rows-4" style="gap: 2cqi; aspect-ratio: 1/1; height: 100%; max-height: 100%; max-width: 100%; margin: auto;">
                             <!-- JS 動態生成 16 格 S 型網格 -->
                         </div>
@@ -195,7 +204,7 @@
                 </div>
 
                 <!-- 右側：資訊與控制 (40%) -->
-                <div class="w-full md:w-[40%] flex flex-col gap-4 min-h-[200px] md:min-h-0 flex-shrink-0">
+                <div class="w-full md:w-[40%] flex flex-col gap-4 min-h-[200px] md:flex-1 flex-shrink-0">
                     <div class="arcade-border bg-white p-4 flex-1 flex flex-col min-h-0">
                         <div class="flex justify-between items-center mb-3 border-b-4 border-slate-200 pb-2 flex-shrink-0">
                             <span class="font-black text-base sm:text-lg text-slate-600">當前進度</span>
@@ -205,7 +214,7 @@
                         <div class="flex-1 overflow-y-auto min-h-0 pr-2">
                             <span class="font-bold text-slate-500 text-xs sm:text-sm mb-2 block">您的接龍路徑：</span>
                             <div id="chain-path-display" class="flex flex-wrap gap-2 text-base sm:text-lg font-bold num-font text-slate-800">
-                                <span class="text-slate-400">請點擊黃色虛線框並輸入質數...</span>
+                                <span class="text-slate-400">請點擊黃色虛線框並使用鍵盤輸入質數...</span>
                             </div>
                         </div>
 
@@ -235,77 +244,78 @@
                 <div class="arcade-border bg-white p-6 sm:p-8 max-w-2xl w-full text-center mx-4">
                     <h3 class="text-xl sm:text-2xl font-black mb-6">您對「質數」熟悉嗎？</h3>
                     <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                        <button id="btn-need-hints" class="arcade-btn bg-yellow-400 hover:bg-yellow-300 text-slate-900 py-4 px-4 text-lg flex-1">
-                            😅 我不太熟<br><span class="text-sm font-bold opacity-80">(樹狀圖模式 + 質數點選)</span>
+                        <button id="btn-need-hints" class="arcade-btn bg-yellow-400 hover:bg-yellow-300 text-slate-900 py-4 px-4 text-xl sm:text-2xl flex-1">
+                            😅 我不太熟<br><span class="text-sm sm:text-base font-bold opacity-80">(樹狀圖模式 + 質數點選)</span>
                         </button>
-                        <button id="btn-no-hints" class="arcade-btn bg-cyan-500 hover:bg-cyan-400 text-white py-4 px-4 text-lg flex-1">
-                            😎 我很熟<br><span class="text-sm font-bold opacity-90">(直接線性分解)</span>
+                        <button id="btn-no-hints" class="arcade-btn bg-cyan-500 hover:bg-cyan-400 text-white py-4 px-4 text-xl sm:text-2xl flex-1">
+                            😎 我很熟<br><span class="text-sm sm:text-base font-bold opacity-90">(直接線性分解)</span>
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- 第二關遊戲區：強制 md 尺寸以上左右並排 -->
-            <div id="s2-gameplay" class="hidden-stage flex-1 min-h-0 flex flex-col md:flex-row gap-4 w-full pb-4">
-                <!-- 左側：控制與提示 (固定寬度佔比) -->
-                <div class="w-full md:w-[35%] md:min-w-[280px] flex flex-col gap-3 min-h-0">
+            <!-- 第二關遊戲區：改成 sm:flex-row 保證平板與電腦都能左右並排 -->
+            <div id="s2-gameplay" class="hidden-stage flex-1 min-h-0 flex flex-col sm:flex-row gap-4 w-full pb-4">
+                
+                <!-- 左側：控制與提示 (35%) -->
+                <div class="w-full sm:w-[35%] sm:min-w-[300px] flex flex-col gap-3 min-h-0">
                     <div class="arcade-border bg-white p-3 sm:p-4 flex-shrink-0">
-                        <h3 class="font-black text-base mb-2 border-b-4 border-slate-200 pb-2 text-slate-700">🎯 產生目標數值</h3>
+                        <h3 class="font-black text-lg sm:text-xl mb-2 border-b-4 border-slate-200 pb-2 text-slate-700">🎯 產生目標數值</h3>
                         <div class="flex flex-col gap-2">
-                            <button id="btn-gen-easy" class="arcade-btn bg-cyan-100 hover:bg-cyan-200 text-cyan-900 py-2 text-sm font-bold">產生基礎題 (50以內)</button>
-                            <button id="btn-gen-hard" class="arcade-btn bg-cyan-100 hover:bg-cyan-200 text-cyan-900 py-2 text-sm font-bold">產生進階題 (50~200)</button>
+                            <button id="btn-gen-easy" class="arcade-btn bg-cyan-100 hover:bg-cyan-200 text-cyan-900 py-2 sm:py-3 text-sm sm:text-base font-bold">產生基礎題 (50以內)</button>
+                            <button id="btn-gen-hard" class="arcade-btn bg-cyan-100 hover:bg-cyan-200 text-cyan-900 py-2 sm:py-3 text-sm sm:text-base font-bold">產生進階題 (50~200)</button>
                             <div class="flex mt-1 gap-2">
-                                <input type="number" inputmode="none" id="s2-custom-num" placeholder="手動輸入..." class="arcade-input flex-grow px-3 text-sm min-w-0 py-1">
-                                <button id="btn-start-factor" class="arcade-btn bg-cyan-600 hover:bg-cyan-500 text-white px-3 text-sm">開始</button>
+                                <input type="number" inputmode="none" id="s2-custom-num" placeholder="手動輸入..." class="arcade-input flex-grow px-3 text-sm sm:text-base min-w-0 py-2">
+                                <button id="btn-start-factor" class="arcade-btn bg-cyan-600 hover:bg-cyan-500 text-white px-4 text-sm sm:text-base">開始</button>
                             </div>
                         </div>
                     </div>
                     
                     <div id="s2-message-box" class="arcade-border p-3 hidden-stage flex-shrink-0">
-                        <p id="s2-message-text" class="font-black text-sm text-center"></p>
+                        <p id="s2-message-text" class="font-black text-sm sm:text-base text-center"></p>
                     </div>
 
-                    <!-- 質數提示區塊：若太長允許內部捲動 -->
-                    <div id="prime-hints-bar" class="hidden-stage arcade-border bg-yellow-50 p-3 sm:p-4 flex-1 min-h-0 overflow-y-auto">
-                        <div class="font-black text-slate-700 mb-2 text-sm">💡 質數原料提示 <span class="text-xs text-slate-500 font-normal">(點擊自動帶入)</span></div>
+                    <!-- 質數提示區塊：獨立滾動 -->
+                    <div id="prime-hints-bar" class="hidden-stage arcade-border bg-yellow-50 p-3 sm:p-4 flex-1 min-h-0 overflow-y-auto pb-8">
+                        <div class="font-black text-slate-700 mb-2 text-sm sm:text-base">💡 質數原料提示 <span class="text-xs sm:text-sm text-slate-500 font-normal">(點擊自動帶入)</span></div>
                         <div class="flex flex-wrap gap-2" id="hint-bubbles-container"></div>
                     </div>
                 </div>
 
-                <!-- 右側：分解區 (佔據剩餘空間) -->
-                <div class="w-full md:flex-1 flex flex-col min-h-0">
+                <!-- 右側：分解區 (65%) -->
+                <div class="w-full sm:flex-1 flex flex-col min-h-0">
                     <div class="arcade-border bg-white p-3 sm:p-4 flex-1 flex flex-col min-h-0 relative">
                         <div class="flex justify-between items-end mb-2 border-b-4 border-slate-200 pb-2 flex-shrink-0">
                             <div>
-                                <span class="text-xs font-black text-slate-400 block mb-1">目前待分解數值</span>
-                                <span id="s2-current-num" class="text-3xl sm:text-4xl font-black text-cyan-600 num-font leading-none">--</span>
+                                <span class="text-xs sm:text-sm font-black text-slate-400 block mb-1">目前待分解數值</span>
+                                <span id="s2-current-num" class="text-4xl sm:text-5xl font-black text-cyan-600 num-font leading-none">--</span>
                             </div>
                         </div>
 
-                        <!-- 樹狀圖模式容器：內部可捲動 -->
+                        <!-- 樹狀圖模式容器 -->
                         <div id="s2-tree-area" class="hidden-stage flex-1 min-h-0 bg-slate-50 rounded-xl mb-2 border-4 border-slate-200 relative overflow-y-auto flex flex-col items-center pt-6" style="background-image: radial-gradient(#cbd5e1 2px, transparent 2px); background-size: 20px 20px;">
                         </div>
 
-                        <!-- 線性模式容器：內部可捲動 -->
+                        <!-- 線性模式容器 -->
                         <div id="s2-linear-area" class="hidden-stage flex-1 flex flex-col min-h-0">
-                            <div id="s2-history" class="flex-1 min-h-0 bg-slate-50 rounded-xl p-4 mb-3 text-xl sm:text-2xl num-font font-black text-slate-700 border-4 border-slate-200 overflow-y-auto break-words flex flex-wrap items-center gap-2 content-start"></div>
+                            <div id="s2-history" class="flex-1 min-h-0 bg-slate-50 rounded-xl p-4 mb-3 text-2xl sm:text-3xl num-font font-black text-slate-700 border-4 border-slate-200 overflow-y-auto break-words flex flex-wrap items-center gap-2 content-start"></div>
                             
                             <div id="s2-action-area" class="flex-shrink-0 opacity-50 pointer-events-none transition-opacity duration-300">
                                 <div id="s2-step-prime" class="bg-cyan-50 p-3 rounded-xl border-4 border-cyan-200">
-                                    <label class="block font-black text-cyan-800 mb-2 text-sm">1. 請輸入質因數：</label>
+                                    <label class="block font-black text-cyan-800 mb-2 text-sm sm:text-base">1. 請輸入質因數：</label>
                                     <form id="form-prime" class="flex gap-2">
-                                        <input type="number" inputmode="none" id="input-prime" class="arcade-input flex-grow px-3 py-2 text-base sm:text-lg min-w-0" placeholder="例如: 2, 3, 5...">
-                                        <button type="submit" class="arcade-btn bg-cyan-600 hover:bg-cyan-500 text-white px-4 text-base font-bold">分解</button>
+                                        <input type="number" inputmode="none" id="input-prime" class="arcade-input flex-grow px-3 py-2 text-lg sm:text-xl min-w-0" placeholder="例如: 2, 3, 5...">
+                                        <button type="submit" class="arcade-btn bg-cyan-600 hover:bg-cyan-500 text-white px-6 text-lg font-bold">分解</button>
                                     </form>
                                 </div>
                                 <div id="s2-step-quotient" class="hidden-stage bg-emerald-50 p-3 rounded-xl border-4 border-emerald-200 mt-2">
-                                    <label class="block font-black text-emerald-800 mb-2 text-sm">2. 請問剩下的商數是多少？</label>
+                                    <label class="block font-black text-emerald-800 mb-2 text-sm sm:text-base">2. 請問剩下的商數是多少？</label>
                                     <form id="form-quotient" class="flex items-center gap-2">
-                                        <div class="text-lg font-black text-slate-700 num-font flex-shrink-0">
+                                        <div class="text-xl sm:text-2xl font-black text-slate-700 num-font flex-shrink-0">
                                             <span id="hint-original">--</span> = <span id="hint-prime" class="text-cyan-600">--</span> ×
                                         </div>
-                                        <input type="number" inputmode="none" id="input-quotient" class="arcade-input w-20 px-2 py-2 text-lg text-center text-emerald-700 min-w-0" placeholder="?">
-                                        <button type="submit" class="arcade-btn bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-2 text-sm sm:text-base whitespace-nowrap font-bold">確認</button>
+                                        <input type="number" inputmode="none" id="input-quotient" class="arcade-input w-24 px-2 py-2 text-xl sm:text-2xl text-center text-emerald-700 min-w-0" placeholder="?">
+                                        <button type="submit" class="arcade-btn bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 text-base sm:text-lg whitespace-nowrap font-bold">確認</button>
                                     </form>
                                 </div>
                             </div>
@@ -327,34 +337,33 @@
                 <p class="text-slate-700 font-bold text-xs sm:text-sm">將剛才找到的所有質因數，<span class="text-purple-600">由小到大</span>排列，並轉換成次方的形式。</p>
             </div>
 
-            <!-- 第三關主版面：單一緊湊區塊 -->
+            <!-- 第三關主版面：高度自適應，不溢出 -->
             <div class="flex-1 arcade-border bg-white p-3 sm:p-4 flex flex-col min-h-0 relative mb-2 sm:mb-4">
                 
                 <!-- 上方：緊湊的質因數清單 Chips -->
-                <div class="bg-slate-50 border-4 border-slate-200 p-2 mb-3 rounded-lg flex flex-col items-center flex-shrink-0">
-                    <span class="text-xs font-black text-slate-500 mb-1">分解出的質因數清單</span>
-                    <div id="s3-raw-factors" class="flex flex-wrap justify-center gap-1.5 sm:gap-2">
+                <div class="bg-slate-50 border-4 border-slate-200 p-3 mb-3 rounded-lg flex flex-col items-center flex-shrink-0">
+                    <span class="text-sm font-black text-slate-500 mb-2">分解出的質因數清單</span>
+                    <div id="s3-raw-factors" class="flex flex-wrap justify-center items-center gap-2">
                         <!-- JS 注入 Chips -->
                     </div>
                 </div>
 
-                <!-- 中間：合成操作區 (新增外包裝容器解決標題裁切問題) -->
+                <!-- 中間：合成操作區 (內部獨立捲動) -->
                 <div class="flex-1 flex flex-col min-h-0 relative mt-4">
-                    <!-- 絕對定位標題放置於捲動容器外，避免被裁切 -->
-                    <div class="absolute -top-3 left-4 bg-purple-300 text-purple-900 border-2 border-purple-900 px-3 py-0.5 text-xs font-black shadow-[2px_2px_0px_#0f172a] z-10">合成區</div>
+                    <!-- 標籤獨立定位，避免被 overflow-y-auto 裁切 -->
+                    <div class="absolute -top-3 left-4 bg-purple-300 text-purple-900 border-2 border-purple-900 px-3 py-1 text-sm font-black shadow-[2px_2px_0px_#0f172a] z-10">合成區</div>
                     
-                    <!-- 實際捲動區域 -->
-                    <div class="flex-1 bg-purple-50 p-3 sm:p-4 rounded-lg border-4 border-purple-200 flex flex-col min-h-0 overflow-y-auto pt-5">
+                    <div class="flex-1 bg-purple-50 p-3 sm:p-4 rounded-lg border-4 border-purple-200 flex flex-col min-h-0 overflow-y-auto pt-6">
                         <form id="form-standard" class="flex flex-col items-center flex-1 justify-center">
-                            <div id="s3-input-container" class="flex flex-wrap items-center justify-center gap-x-2 gap-y-5 w-full mb-4">
+                            <div id="s3-input-container" class="flex flex-wrap items-center justify-center gap-x-4 gap-y-6 w-full mb-6">
                                 <!-- JS 注入 Input Terms -->
                             </div>
                             
-                            <div id="s3-buttons-bar" class="flex gap-2 w-full max-w-sm mt-auto flex-shrink-0">
-                                 <button type="button" id="btn-add-term" class="arcade-btn bg-white hover:bg-slate-50 text-slate-700 py-2 flex-1 text-sm font-bold">
+                            <div id="s3-buttons-bar" class="flex gap-4 w-full max-w-md mt-auto flex-shrink-0">
+                                 <button type="button" id="btn-add-term" class="arcade-btn bg-white hover:bg-slate-50 text-slate-700 py-3 flex-1 text-base sm:text-lg font-bold">
                                     ➕ 新增乘項
                                 </button>
-                                <button type="submit" id="btn-verify-ans" class="arcade-btn bg-purple-600 hover:bg-purple-500 text-white py-2 flex-1 text-sm font-bold">
+                                <button type="submit" id="btn-verify-ans" class="arcade-btn bg-purple-600 hover:bg-purple-500 text-white py-3 flex-1 text-base sm:text-lg font-bold">
                                     ✨ 驗證答案
                                 </button>
                             </div>
@@ -362,73 +371,190 @@
                     </div>
                 </div>
                 
-                <!-- 底部：結果回饋區 (過關後顯示) -->
-                <div id="s3-feedback" class="hidden-stage mt-3 p-3 arcade-border flex-shrink-0 text-center flex flex-col sm:flex-row items-center justify-between gap-3">
+                <!-- 底部：結果回饋區 -->
+                <div id="s3-feedback" class="hidden-stage mt-3 p-3 sm:p-4 arcade-border flex-shrink-0 text-center flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div class="text-left flex-1">
-                        <h3 id="s3-feedback-title" class="text-base sm:text-lg font-black mb-0.5"></h3>
-                        <p id="s3-feedback-desc" class="text-slate-700 font-bold text-xs sm:text-sm"></p>
+                        <h3 id="s3-feedback-title" class="text-lg sm:text-xl font-black mb-1"></h3>
+                        <p id="s3-feedback-desc" class="text-slate-700 font-bold text-sm sm:text-base"></p>
                     </div>
-                    <div id="s3-success-actions" class="hidden-stage flex-shrink-0 w-full sm:w-auto flex flex-col sm:flex-row gap-2">
-                        <button id="btn-restart-all" class="w-full arcade-btn bg-pink-500 hover:bg-pink-400 text-white py-2 px-4 text-sm font-bold whitespace-nowrap">
+                    <div id="s3-success-actions" class="hidden-stage flex-shrink-0 w-full sm:w-auto flex flex-col sm:flex-row gap-3">
+                        <button id="btn-restart-all" class="w-full arcade-btn bg-pink-500 hover:bg-pink-400 text-white py-3 px-6 text-base sm:text-lg font-bold whitespace-nowrap">
                             🔄 回第二關
                         </button>
-                        <button id="btn-s3-advanced" class="w-full arcade-btn bg-yellow-400 hover:bg-yellow-300 text-slate-900 py-2 px-4 text-sm font-bold keypad-flash whitespace-nowrap">
+                        <button id="btn-s3-advanced" class="w-full arcade-btn bg-yellow-400 hover:bg-yellow-300 text-slate-900 py-3 px-6 text-base sm:text-lg font-bold keypad-flash whitespace-nowrap">
                             🔥 進階挑戰！
                         </button>
                     </div>
                 </div>
             </div>
         </section>
+
+        <section id="stage-4" class="hidden-stage fade-in flex flex-col w-full h-full min-h-0">
+            <div class="text-center mb-2 bg-white p-2 sm:p-3 arcade-border w-full flex-shrink-0">
+                <h2 class="text-lg sm:text-2xl font-black mb-1 flex items-center justify-center gap-2 text-indigo-600">
+                    ⚔️ 第四關：動態測驗
+                </h2>
+                <p class="text-slate-700 font-bold text-xs sm:text-sm">綜合驗收！可選擇單人挑戰或雙人對戰模式。</p>
+            </div>
+
+            <div class="flex-1 bg-white arcade-border p-4 flex flex-col min-h-0 overflow-y-auto relative">
+                
+                <!-- 測驗設定 -->
+                <div id="s4-setup" class="flex flex-col gap-4 max-w-3xl mx-auto w-full">
+                    <h3 class="text-2xl font-black text-center text-slate-800 border-b-4 border-slate-200 pb-3">測驗設定</h3>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="bg-orange-50 p-4 rounded-lg border-2 border-orange-200">
+                            <label class="block font-black text-orange-800 mb-3 text-base">測驗主題</label>
+                            <div class="flex flex-col gap-3" id="s4-topic-group">
+                                <button class="s4-opt-btn active bg-orange-500 text-white arcade-btn py-3 text-base sm:text-lg" data-val="prime">質數判別</button>
+                                <button class="s4-opt-btn bg-slate-100 text-slate-700 arcade-btn py-3 text-base sm:text-lg" data-val="factor">質因數尋找</button>
+                                <button class="s4-opt-btn bg-slate-100 text-slate-700 arcade-btn py-3 text-base sm:text-lg" data-val="standard">標準分解式</button>
+                                <button class="s4-opt-btn bg-slate-100 text-slate-700 arcade-btn py-3 text-base sm:text-lg" data-val="mixed">🎲 綜合隨機</button>
+                            </div>
+                        </div>
+
+                        <div class="bg-green-50 p-4 rounded-lg border-2 border-green-200 flex flex-col gap-5">
+                            <div>
+                                <label class="block font-black text-green-800 mb-3 text-base">難度</label>
+                                <div class="flex gap-2" id="s4-diff-group">
+                                    <button class="s4-opt-btn active bg-green-500 text-white arcade-btn py-3 flex-1 text-base sm:text-lg" data-val="1">易</button>
+                                    <button class="s4-opt-btn bg-slate-100 text-slate-700 arcade-btn py-3 flex-1 text-base sm:text-lg" data-val="2">中</button>
+                                    <button class="s4-opt-btn bg-slate-100 text-slate-700 arcade-btn py-3 flex-1 text-base sm:text-lg" data-val="3">難</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block font-black text-green-800 mb-3 text-base">題數</label>
+                                <div class="flex gap-2" id="s4-count-group">
+                                    <button class="s4-opt-btn active bg-blue-500 text-white arcade-btn py-3 flex-1 text-base sm:text-lg" data-val="5">5題</button>
+                                    <button class="s4-opt-btn bg-slate-100 text-slate-700 arcade-btn py-3 flex-1 text-base sm:text-lg" data-val="10">10題</button>
+                                    <button class="s4-opt-btn bg-slate-100 text-slate-700 arcade-btn py-3 flex-1 text-base sm:text-lg" data-val="15">15題</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block font-black text-green-800 mb-3 text-base">遊玩模式</label>
+                                <div class="flex gap-2" id="s4-mode-group">
+                                    <button class="s4-opt-btn active bg-indigo-500 text-white arcade-btn py-3 flex-1 text-base" data-val="single">👤 單人挑戰</button>
+                                    <button class="s4-opt-btn bg-slate-100 text-slate-700 arcade-btn py-3 flex-1 text-base" data-val="multi">⚔️ 雙人對戰 (分割畫面)</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="btn-start-s4" class="arcade-btn bg-indigo-600 hover:bg-indigo-500 text-white font-black text-2xl py-4 mt-4">
+                        開始測驗 🚀
+                    </button>
+                </div>
+
+                <!-- 測驗進行畫面 -->
+                <div id="s4-quiz" class="hidden-stage flex-col h-full">
+                    <div class="flex justify-between items-center mb-4 flex-shrink-0 bg-slate-100 p-3 rounded-lg border-2 border-slate-300">
+                        <span id="s4-progress" class="font-black text-slate-600 text-lg">題數: 1/10</span>
+                        <span id="s4-single-score-ui" class="font-black text-indigo-600 text-xl">Score: 0</span>
+                    </div>
+
+                    <div class="flex-1 flex flex-col text-center min-h-0">
+                        <h3 id="s4-question-text" class="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-800 mb-6 bg-yellow-100 p-6 rounded-xl border-4 border-yellow-400 shadow-[4px_4px_0px_#facc15] flex-shrink-0"></h3>
+                        
+                        <!-- 雙人模式分隔島設計 -->
+                        <div id="s4-answers-container" class="flex-1 flex flex-col sm:flex-row gap-4 relative min-h-0 pb-4">
+                            <!-- P1 -->
+                            <div id="s4-p1-area" class="flex-1 bg-red-50 p-4 rounded-xl border-4 border-red-200 flex flex-col min-h-0">
+                                <h4 class="s4-multi-label hidden-stage text-red-600 font-black mb-3 text-xl">P1 (左側玩家) - <span id="s4-p1-score">0</span>分</h4>
+                                <div id="s4-p1-options" class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 content-stretch"></div>
+                            </div>
+                            
+                            <!-- 分隔島 (僅雙人顯示) -->
+                            <div id="s4-vs-divider" class="hidden-stage flex flex-col items-center justify-center px-2 flex-shrink-0">
+                                <div class="w-2 h-full bg-slate-300 rounded-full"></div>
+                                <div class="bg-slate-800 text-white font-black py-2 px-3 rounded-full absolute text-xl">VS</div>
+                            </div>
+
+                            <!-- P2 -->
+                            <div id="s4-p2-area" class="hidden-stage flex-1 bg-blue-50 p-4 rounded-xl border-4 border-blue-200 flex flex-col min-h-0">
+                                <h4 class="s4-multi-label hidden-stage text-blue-600 font-black mb-3 text-xl">P2 (右側玩家) - <span id="s4-p2-score">0</span>分</h4>
+                                <div id="s4-p2-options" class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 content-stretch"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 測驗結果畫面 -->
+                <div id="s4-result" class="hidden-stage flex-col items-center justify-center h-full text-center">
+                    <h2 class="text-4xl font-black text-slate-800 mb-6">測驗結束！</h2>
+                    
+                    <div id="s4-single-result" class="bg-indigo-50 p-8 rounded-xl border-4 border-indigo-200 w-full max-w-md mb-8">
+                        <p class="text-xl font-bold text-slate-600 mb-3">最終得分</p>
+                        <p id="s4-final-score-single" class="text-7xl font-black text-indigo-600 num-font mb-4">100</p>
+                    </div>
+
+                    <div id="s4-multi-result" class="hidden-stage bg-slate-50 p-8 rounded-xl border-4 border-slate-300 w-full max-w-2xl mb-8 flex justify-around">
+                        <div>
+                            <p class="text-xl font-bold text-red-600 mb-2">P1 得分</p>
+                            <p id="s4-final-score-p1" class="text-6xl font-black text-red-600 num-font">0</p>
+                        </div>
+                        <div class="border-l-4 border-slate-300 mx-4"></div>
+                        <div>
+                            <p class="text-xl font-bold text-blue-600 mb-2">P2 得分</p>
+                            <p id="s4-final-score-p2" class="text-6xl font-black text-blue-600 num-font">0</p>
+                        </div>
+                    </div>
+                    
+                    <p id="s4-winner-text" class="text-3xl font-black text-slate-800 mb-8"></p>
+
+                    <button id="btn-s4-restart" class="arcade-btn bg-indigo-600 hover:bg-indigo-500 text-white font-black text-2xl py-4 px-10">
+                        🔄 重新設定
+                    </button>
+                </div>
+            </div>
+        </section>
     </main>
 
-    <!-- 鍵盤氣泡提示 -->
-    <div id="keypad-hint-container" class="fixed bottom-6 right-20 z-40 flex items-center animate-bounce transition-opacity duration-300">
-        <div class="bg-slate-800 text-white text-xs sm:text-sm font-bold py-1.5 px-3 rounded-lg shadow-lg relative">
+    <!-- 鍵盤氣泡提示 (新增文字氣泡) -->
+    <div id="keypad-hint-container" class="fixed bottom-20 right-8 z-40 flex items-center animate-bounce transition-opacity duration-300 pointer-events-none">
+        <div class="bg-slate-800 text-white text-sm sm:text-base font-bold py-2 px-4 rounded-lg shadow-lg relative keypad-flash">
             請點我開啟數字鍵盤
             <!-- 箭頭 -->
-            <div class="absolute top-1/2 -right-1 transform -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
+            <div class="absolute -bottom-2 right-6 transform w-4 h-4 bg-slate-800 rotate-45"></div>
         </div>
     </div>
 
-    <!-- 鍵盤按鈕加上 keypad-flash 閃爍特效 -->
-    <button id="btn-toggle-keypad" class="fixed bottom-4 right-4 z-40 arcade-btn bg-yellow-400 hover:bg-yellow-300 text-slate-900 p-3 rounded-full shadow-[4px_4px_0px_#0f172a] text-xl transition-transform hover:scale-110 keypad-flash" onclick="toggleKeypad()" title="開關數字鍵盤">⌨️</button>
+    <!-- 啟動鍵盤按鈕 -->
+    <button id="btn-toggle-keypad" class="fixed bottom-4 right-4 z-40 arcade-btn bg-yellow-400 hover:bg-yellow-300 text-slate-900 p-4 rounded-full shadow-[4px_4px_0px_#0f172a] text-2xl transition-transform hover:scale-110 keypad-flash" onclick="toggleKeypad()" title="開關數字鍵盤">⌨️</button>
 
-    <div id="floating-keypad" class="fixed hidden-stage flex-col bg-cyan-50 arcade-border z-50 shadow-[8px_8px_0px_#0f172a]" style="transform-origin: top left; transform: scale(1); width: 220px; touch-action: none;">
-        <!-- 四角縮放控制點 -->
+    <!-- 浮動數字鍵盤主體 (四角縮放) -->
+    <div id="floating-keypad" class="fixed hidden-stage flex-col bg-cyan-50 arcade-border z-50 shadow-[8px_8px_0px_#0f172a]" style="transform-origin: top left; transform: scale(1); width: 240px; touch-action: none;">
         <div class="resize-handle nw" data-corner="nw"></div>
         <div class="resize-handle ne" data-corner="ne"></div>
         <div class="resize-handle sw" data-corner="sw"></div>
         <div class="resize-handle se" data-corner="se"></div>
 
-        <!-- 拖曳標題列 -->
-        <div id="keypad-header" class="bg-slate-800 text-white p-2 flex justify-between items-center cursor-move border-b-4 border-slate-900 select-none rounded-t-lg">
-            <span class="font-black text-xs tracking-widest pl-1 flex items-center gap-1">⌨️ 數字鍵盤</span>
+        <div id="keypad-header" class="bg-slate-800 text-white p-3 flex justify-between items-center cursor-move border-b-4 border-slate-900 select-none rounded-t-lg">
+            <span class="font-black text-sm tracking-widest pl-1 flex items-center gap-1">⌨️ 數字鍵盤</span>
             <div class="flex gap-1 z-10">
-                <button type="button" class="bg-rose-500 hover:bg-rose-400 text-white w-5 h-5 rounded flex items-center justify-center font-black border-2 border-slate-900 text-[10px]" onclick="toggleKeypad()" title="關閉">X</button>
+                <button type="button" class="bg-rose-500 hover:bg-rose-400 text-white w-6 h-6 rounded flex items-center justify-center font-black border-2 border-slate-900 text-xs" onclick="toggleKeypad()" title="關閉">X</button>
             </div>
         </div>
         
-        <div id="keypad-body" class="p-2 grid grid-cols-3 gap-1.5 bg-white rounded-b-lg">
-            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('7')">7</button>
-            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('8')">8</button>
-            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('9')">9</button>
-            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('4')">4</button>
-            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('5')">5</button>
-            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('6')">6</button>
-            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('1')">1</button>
-            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('2')">2</button>
-            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('3')">3</button>
-            <button type="button" class="arcade-btn bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-black py-1.5" onclick="typeKeypad('C')">清除</button>
-            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-lg font-black py-1.5 num-font" onclick="typeKeypad('0')">0</button>
-            <button type="button" class="arcade-btn bg-orange-100 hover:bg-orange-200 text-orange-700 text-base font-black py-1.5" onclick="typeKeypad('backspace')">⌫</button>
-            <button type="button" class="arcade-btn bg-green-500 hover:bg-green-400 text-white text-sm font-black py-2 col-span-3 tracking-widest" onclick="typeKeypad('enter')">↵ 確認 (Enter)</button>
+        <div id="keypad-body" class="p-3 grid grid-cols-3 gap-2 bg-white rounded-b-lg">
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-xl font-black py-2 num-font" onclick="typeKeypad('7')">7</button>
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-xl font-black py-2 num-font" onclick="typeKeypad('8')">8</button>
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-xl font-black py-2 num-font" onclick="typeKeypad('9')">9</button>
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-xl font-black py-2 num-font" onclick="typeKeypad('4')">4</button>
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-xl font-black py-2 num-font" onclick="typeKeypad('5')">5</button>
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-xl font-black py-2 num-font" onclick="typeKeypad('6')">6</button>
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-xl font-black py-2 num-font" onclick="typeKeypad('1')">1</button>
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-xl font-black py-2 num-font" onclick="typeKeypad('2')">2</button>
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-xl font-black py-2 num-font" onclick="typeKeypad('3')">3</button>
+            <button type="button" class="arcade-btn bg-rose-100 hover:bg-rose-200 text-rose-700 text-sm font-black py-2" onclick="typeKeypad('C')">清除</button>
+            <button type="button" class="arcade-btn bg-slate-100 hover:bg-cyan-200 text-slate-800 text-xl font-black py-2 num-font" onclick="typeKeypad('0')">0</button>
+            <button type="button" class="arcade-btn bg-orange-100 hover:bg-orange-200 text-orange-700 text-lg font-black py-2" onclick="typeKeypad('backspace')">⌫</button>
+            <button type="button" class="arcade-btn bg-green-500 hover:bg-green-400 text-white text-base font-black py-3 col-span-3 tracking-widest mt-1" onclick="typeKeypad('enter')">↵ 確認 (Enter)</button>
         </div>
     </div>
 
     <script>
-        // --- 導覽與關卡切換 ---
-        const navSteps = [document.getElementById('nav-step-1'), document.getElementById('nav-step-2'), document.getElementById('nav-step-3')];
-        const stages = [document.getElementById('stage-1'), document.getElementById('stage-2'), document.getElementById('stage-3')];
+        const navSteps = [document.getElementById('nav-step-1'), document.getElementById('nav-step-2'), document.getElementById('nav-step-3'), document.getElementById('nav-step-4')];
+        const stages = [document.getElementById('stage-1'), document.getElementById('stage-2'), document.getElementById('stage-3'), document.getElementById('stage-4')];
         let currentStage = 1;
 
         function isPrime(num) {
@@ -443,8 +569,9 @@
 
         function updateNavState(targetStage) {
             navSteps.forEach((step, idx) => {
+                if(!step) return;
                 const numCircle = step.querySelector('div');
-                step.className = "flex items-center gap-1 sm:gap-2 transition-colors cursor-pointer hover:bg-slate-50 p-1 rounded-lg ";
+                step.className = "flex items-center gap-1 sm:gap-2 transition-colors cursor-pointer hover:bg-slate-50 p-1 rounded-lg flex-shrink-0";
                 numCircle.className = "w-6 h-6 sm:w-8 sm:h-8 rounded-full border-4 border-current flex items-center justify-center font-black ";
                 if (idx + 1 < targetStage) {
                     step.classList.add("text-green-600"); numCircle.classList.add("bg-green-100");
@@ -461,8 +588,9 @@
 
         function markNavCompleted(stageIdx) {
             const step = navSteps[stageIdx - 1];
+            if(!step) return;
             const numCircle = step.querySelector('div');
-            step.className = "flex items-center gap-1 sm:gap-2 text-green-600 transition-colors cursor-pointer hover:bg-slate-50 p-1 rounded-lg";
+            step.className = "flex items-center gap-1 sm:gap-2 text-green-600 transition-colors cursor-pointer hover:bg-slate-50 p-1 rounded-lg flex-shrink-0";
             numCircle.className = "w-6 h-6 sm:w-8 sm:h-8 rounded-full border-4 border-current flex items-center justify-center bg-green-100 font-black";
             numCircle.style.boxShadow = "2px 2px 0px #0f172a"; numCircle.innerHTML = "✔";
         }
@@ -470,6 +598,7 @@
         function jumpToStage(targetStageIndex) {
             updateNavState(targetStageIndex);
             stages.forEach((stage, idx) => {
+                if(!stage) return;
                 if (idx + 1 === targetStageIndex) {
                     stage.classList.remove('hidden-stage', 'fade-in');
                     void stage.offsetWidth; 
@@ -487,8 +616,11 @@
                 initStage2(); 
             }
             else if(targetStageIndex === 3) {
-                if (!s2CollectedPrimes || s2CollectedPrimes.length === 0) { s2CollectedPrimes = [2, 2, 3]; }
+                if (typeof s2CollectedPrimes === 'undefined' || s2CollectedPrimes.length === 0) { s2CollectedPrimes = [2, 2, 3]; }
                 initStage3();
+            }
+            else if(targetStageIndex === 4) {
+                initStage4();
             }
         }
 
@@ -498,15 +630,15 @@
             el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
         }
 
-        // --- STREAMING_CHUNK:Stage 1 (Prime Chain) Logic... ---
-        // 對應截圖的 16 格視覺陣列，vId 為畫面的 index (0~15)
+        // S型路線的網格視覺定義 (完全吻合: 1234 -> 8765 -> 9 10 11 12 -> 16 15 14 13)
         const VISUAL_CELLS = [
             { vId: 0, badge: 1, arrow: 'right' }, { vId: 1, badge: 2, arrow: 'right' }, { vId: 2, badge: 3, arrow: 'right' }, { vId: 3, badge: 4, arrow: 'down' },
-            { vId: 7, badge: 5, arrow: 'left' }, { vId: 6, badge: 6, isText: true, text: '很棒<br>加油', arrow: 'left' }, { vId: 5, badge: 7, arrow: 'left' }, { vId: 4, badge: 8, arrow: 'down' },
+            { vId: 7, badge: 8, arrow: 'left' }, { vId: 6, badge: 7, arrow: 'left' }, { vId: 5, badge: 6, isText: true, text: '很棒<br>加油', arrow: 'left' }, { vId: 4, badge: 5, arrow: 'down' },
             { vId: 8, badge: 9, arrow: 'right' }, { vId: 9, badge: 10, isText: true, text: '很棒<br>加油', arrow: 'right' }, { vId: 10, badge: 11, arrow: 'right' }, { vId: 11, badge: 12, arrow: 'down' },
-            { vId: 15, badge: 13, arrow: 'left' }, { vId: 14, badge: 14, arrow: 'left' }, { vId: 13, badge: 15, arrow: 'left' }, { vId: 12, badge: 16, arrow: '' }
+            { vId: 15, badge: 16, arrow: '' }, { vId: 14, badge: 15, arrow: 'left' }, { vId: 13, badge: 14, arrow: 'left' }, { vId: 12, badge: 13, arrow: 'left' }
         ];
-        const PLAYABLE_ORDER = [0, 1, 2, 3, 7, 5, 4, 8, 10, 11, 15, 14, 13, 12];
+        // 實際可以玩的 14 個格子位置 (避開 5 和 9)
+        const PLAYABLE_ORDER = [0, 1, 2, 3, 7, 6, 4, 8, 10, 11, 15, 14, 13, 12];
         const TARGET_CHAIN_LENGTH = 8;
         const MAX_CHAIN_LENGTH = 14;
 
@@ -540,7 +672,6 @@
             const pathIdx = chainPath.indexOf(vId);
             
             if (pathIdx !== -1) {
-                // 悔棋
                 const removed = chainPath.slice(pathIdx);
                 removed.forEach(idx => { chainGrid[idx] = null; });
                 chainPath = chainPath.slice(0, pathIdx);
@@ -581,7 +712,7 @@
 
                 const cellHTML = `
                     <div class="relative w-full h-full ${arrowClass}">
-                        <div class="absolute cell-badge bg-rose-500 text-white rounded-full flex items-center justify-center border-slate-900 font-black z-20 shadow-sm border-solid" style="border-width: 0.5cqi;">${cell.badge}</div>
+                        <div class="absolute cell-badge bg-rose-500 text-white rounded-full flex items-center justify-center border-slate-900 font-black z-20 shadow-sm border-solid">${cell.badge}</div>
                         <button onclick="handleChainCellClick(${i})" class="arcade-btn w-full h-full absolute inset-0 flex items-center justify-center text-center ${bgClass} ${borderClass} ${pulseClass} ${cursorClass} z-10 p-1" style="border-width: 0.8cqi;">
                             ${displayHTML}
                         </button>
@@ -592,7 +723,7 @@
 
             chainCountEl.textContent = chainPath.length;
             if (chainPath.length === 0) {
-                chainPathDisplay.innerHTML = '<span class="text-slate-400">請點擊黃色虛線框並輸入質數...</span>';
+                chainPathDisplay.innerHTML = '<span class="text-slate-400">請點擊黃色虛線框並使用鍵盤輸入質數...</span>';
             } else {
                 const pathStrs = chainPath.map(idx => `<span class="bg-cyan-100 text-cyan-800 px-2 py-0.5 rounded arcade-border border-2 text-sm sm:text-base">${chainGrid[idx]}</span>`);
                 chainPathDisplay.innerHTML = pathStrs.join(' <span class="text-slate-400">→</span> ');
@@ -602,7 +733,6 @@
             else btnToStage2.classList.add('hidden-stage');
         }
 
-        // 綁定全局實體鍵盤事件
         document.addEventListener('keydown', (e) => {
             if (currentStage !== 1) return;
             if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
@@ -654,19 +784,14 @@
         document.getElementById('btn-chain-undo').addEventListener('click', () => {
             if(chainPath.length > 0) { const lastIdx = chainPath.pop(); chainGrid[lastIdx] = null; stage1Typing = ''; updateChainUI(); }
         });
-
         document.getElementById('btn-chain-hint').addEventListener('click', () => {
             if(chainPath.length === 0) showChainMsg("第一格可以隨意填入 2, 3, 5, 7, 11...");
             else showChainMsg(`請找開頭是數字 ${chainGrid[chainPath[chainPath.length - 1]] % 10} 的質數！`);
         });
-        
         btnToStage2.addEventListener('click', () => { jumpToStage(2); });
         
-        // 初始啟動第一關
         initStage1();
 
-
-        // --- STREAMING_CHUNK:Stage 2 (Factorization) Logic... ---
         let s2OriginalNum = 0, s2CurrentNum = 0, s2CollectedPrimes = [], s2TempPrime = 0, s2HasHints = false;
         let s2TreeRoot = null, s2TreeActiveNode = null;
 
@@ -678,7 +803,7 @@
             document.getElementById('hint-bubbles-container').innerHTML = '';
             primeRawMaterials.forEach(p => {
                 const btn = document.createElement('button');
-                btn.className = "arcade-btn bg-white hover:bg-yellow-200 text-slate-800 px-2 py-1 sm:px-3 sm:py-1 text-base sm:text-lg num-font border-2";
+                btn.className = "arcade-btn bg-white hover:bg-yellow-200 text-slate-800 px-3 py-1 sm:px-4 sm:py-2 text-lg sm:text-2xl num-font border-2";
                 btn.innerText = p;
                 btn.onclick = () => { 
                     if (s2HasHints && s2TreeActiveNode) processTreePrime(p); 
@@ -712,7 +837,7 @@
             const box = document.getElementById('s2-message-box');
             const textEl = document.getElementById('s2-message-text');
             box.classList.remove('hidden-stage', 'bg-rose-100', 'bg-green-100', 'border-rose-400', 'border-green-400');
-            textEl.className = `font-black text-xs sm:text-sm text-center ${isError ? 'text-rose-700' : 'text-green-700'}`;
+            textEl.className = `font-black text-sm sm:text-base text-center ${isError ? 'text-rose-700' : 'text-green-700'}`;
             box.classList.add(isError ? 'bg-rose-100' : 'bg-green-100', isError ? 'border-rose-400' : 'border-green-400');
             textEl.textContent = text;
             if(isError) playErrorAnim('s2-message-box');
@@ -747,17 +872,17 @@
             let nodeHtml = '';
             if (isWaitingQuot) {
                 nodeHtml = `
-                <div class="z-20 bg-white p-1 sm:p-2 arcade-border rounded-xl shadow-xl transform scale-110 flex items-center gap-1 relative border-yellow-400 border-4 animate-pulse">
-                    <input type="number" inputmode="none" id="tree-quotient-input" class="arcade-input w-12 sm:w-16 h-8 sm:h-10 text-lg sm:text-xl text-center bg-emerald-100 text-emerald-900 border-2" placeholder="?">
-                    <button id="tree-quotient-btn" class="bg-emerald-500 hover:bg-emerald-400 text-white rounded w-8 sm:w-10 h-8 sm:h-10 text-sm sm:text-lg font-black border-2 border-slate-900">✔</button>
+                <div class="z-20 bg-white p-2 arcade-border rounded-xl shadow-xl transform scale-110 flex items-center gap-2 relative border-yellow-400 border-4 animate-pulse">
+                    <input type="number" inputmode="none" id="tree-quotient-input" class="arcade-input w-16 h-10 text-xl text-center bg-emerald-100 text-emerald-900 border-2" placeholder="?">
+                    <button id="tree-quotient-btn" class="bg-emerald-500 hover:bg-emerald-400 text-white rounded w-10 h-10 text-lg font-black border-2 border-slate-900">✔</button>
                 </div>`;
             } else if (isWaitingPrime) {
-                nodeHtml = `<div class="z-20 bg-white/60 rounded-full border-4 border-dashed border-pink-400 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center animate-pulse shadow-sm relative"><span class="text-pink-500 text-[10px] sm:text-xs font-bold text-center leading-tight">等待<br>質數</span></div>`;
+                nodeHtml = `<div class="z-20 bg-white/60 rounded-full border-4 border-dashed border-pink-400 w-16 h-16 flex items-center justify-center animate-pulse shadow-sm relative"><span class="text-pink-500 text-xs font-bold text-center leading-tight">等待<br>質數</span></div>`;
             } else {
                 let bgClass = node.isPrime ? 'bg-pink-300' : 'bg-cyan-100';
                 let shapeClass = node.isPrime ? 'rounded-full' : 'rounded-2xl';
                 let activeClass = (isActive && !node.isPrime && (!node.left || node.left.val==='?')) ? 'ring-4 ring-yellow-400 scale-105' : '';
-                nodeHtml = `<div class="z-20 relative ${bgClass} ${shapeClass} ${activeClass} border-4 border-slate-900 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center text-xl sm:text-2xl font-black shadow-[4px_4px_0px_#0f172a] num-font text-slate-800">${node.val}</div>`;
+                nodeHtml = `<div class="z-20 relative ${bgClass} ${shapeClass} ${activeClass} border-4 border-slate-900 w-16 h-16 flex items-center justify-center text-2xl font-black shadow-[4px_4px_0px_#0f172a] num-font text-slate-800">${node.val}</div>`;
             }
 
             if (!node.left && !node.right) {
@@ -768,11 +893,11 @@
             <div class="tree-line-wrapper">
                 <div class="flex flex-col items-center">
                     ${nodeHtml}
-                    <div class="w-[80px] sm:w-[140px] h-4 sm:h-6 flex relative z-0 mt-[-2px]">
+                    <div class="w-[140px] h-6 flex relative z-0 mt-[-2px]">
                         <div class="w-1/2 border-t-4 border-l-4 border-slate-900 rounded-tl-xl"></div>
                         <div class="w-1/2 border-t-4 border-r-4 border-slate-900 rounded-tr-xl"></div>
                     </div>
-                    <div class="w-[80px] sm:w-[140px] flex justify-between mt-[-4px]">
+                    <div class="w-[140px] flex justify-between mt-[-4px]">
                         ${renderTreeNode(node.left, false)}
                         ${renderTreeNode(node.right, false)}
                     </div>
@@ -782,7 +907,7 @@
 
         function updateTreeUI() {
             const container = document.getElementById('s2-tree-area');
-            container.innerHTML = `<div class="p-2 sm:p-4 pb-20 w-full flex justify-center">${renderTreeNode(s2TreeRoot, s2TreeActiveNode === s2TreeRoot)}</div>`;
+            container.innerHTML = `<div class="p-4 pb-20 w-full flex justify-center">${renderTreeNode(s2TreeRoot, s2TreeActiveNode === s2TreeRoot)}</div>`;
 
             const qInput = document.getElementById('tree-quotient-input');
             const qBtn = document.getElementById('tree-quotient-btn');
@@ -840,10 +965,10 @@
         }
 
         function updateLinearUI() {
-            if (s2CollectedPrimes.length === 0) document.getElementById('s2-history').innerHTML = `<span class="text-slate-400 text-lg">準備開始分解...</span>`;
+            if (s2CollectedPrimes.length === 0) document.getElementById('s2-history').innerHTML = `<span class="text-slate-400 text-xl">準備開始分解...</span>`;
             else {
                 let html = `<span class="text-slate-800">${s2OriginalNum} = <span class="text-cyan-600">${s2CollectedPrimes.join(' × ')}</span>`;
-                if (s2CurrentNum > 1) html += ` × <span class="bg-yellow-200 px-2 rounded-lg border-2 border-yellow-500">${s2CurrentNum}</span>`;
+                if (s2CurrentNum > 1) html += ` × <span class="bg-yellow-200 px-3 py-1 rounded-lg border-2 border-yellow-500">${s2CurrentNum}</span>`;
                 document.getElementById('s2-history').innerHTML = html;
             }
         }
@@ -851,9 +976,6 @@
             document.getElementById('s2-step-prime').classList.remove('hidden-stage');
             document.getElementById('s2-step-quotient').classList.add('hidden-stage');
             document.getElementById('input-prime').value = ''; 
-            if(!document.getElementById('s2-gameplay').classList.contains('hidden-stage')){
-                document.getElementById('input-prime').focus();
-            }
         }
 
         document.getElementById('btn-gen-easy').addEventListener('click', () => { let n; do{n=Math.floor(Math.random()*38)+12;}while(isPrime(n)); startFactorization(n); });
@@ -887,8 +1009,6 @@
         
         btnToStage3.addEventListener('click', () => jumpToStage(3));
 
-
-        // --- STREAMING_CHUNK:Stage 3 (Standard Form) Logic... ---
         let s3ExpectedFormat = []; 
 
         function initStage3() {
@@ -897,7 +1017,7 @@
             s3ExpectedFormat = Object.keys(counts).map(Number).sort((a,b)=>a-b).map(b => ({ base: b, exp: counts[b] }));
             
             document.getElementById('s3-raw-factors').innerHTML = sortedPrimes.map((p, idx) => 
-                `<span class="inline-block bg-white arcade-border border-2 px-2 py-0.5 sm:px-3 sm:py-1 text-slate-800 font-black text-lg sm:text-xl">${p}</span>${idx < sortedPrimes.length-1 ? '<span class="text-slate-400 font-bold self-center text-xl sm:text-2xl mx-1">×</span>' : ''}`
+                `<span class="inline-block bg-white arcade-border border-2 px-4 py-2 text-slate-800 font-black text-3xl">${p}</span>${idx < sortedPrimes.length-1 ? '<span class="text-slate-400 font-bold self-center text-3xl mx-2">×</span>' : ''}`
             ).join('');
             
             document.getElementById('s3-input-container').innerHTML = '';
@@ -908,36 +1028,24 @@
             createInputTerm();
         }
 
-        // 第三關：進階挑戰邏輯 (混和合數陣列拆解)
         document.getElementById('btn-s3-advanced').addEventListener('click', () => {
             const advancedPools = [
-                [2, 3, 4, 5, 3, 11],
-                [5, 11, 2, 9, 3],
-                [4, 6, 15, 2],
-                [8, 9, 5, 7],
-                [2, 10, 3, 6, 5],
-                [4, 4, 9, 25]
+                [2, 3, 4, 5, 3, 11], [5, 11, 2, 9, 3], [4, 6, 15, 2], [8, 9, 5, 7], [2, 10, 3, 6, 5], [4, 4, 9, 25]
             ];
             const randomPool = advancedPools[Math.floor(Math.random() * advancedPools.length)];
             
             let allPrimes = [];
             randomPool.forEach(num => {
                 let temp = num;
-                for (let i = 2; i <= temp; i++) {
-                    while (temp % i === 0) {
-                        allPrimes.push(i);
-                        temp /= i;
-                    }
-                }
+                for (let i = 2; i <= temp; i++) { while (temp % i === 0) { allPrimes.push(i); temp /= i; } }
             });
             
             allPrimes.sort((a,b) => a-b);
-            const counts = {}; 
-            allPrimes.forEach(f => counts[f] = (counts[f]||0)+1);
+            const counts = {}; allPrimes.forEach(f => counts[f] = (counts[f]||0)+1);
             s3ExpectedFormat = Object.keys(counts).map(Number).sort((a,b)=>a-b).map(b => ({ base: b, exp: counts[b] }));
             
             document.getElementById('s3-raw-factors').innerHTML = randomPool.map((p, idx) => 
-                `<span class="inline-block bg-yellow-100 border-yellow-400 border-4 px-2 py-0.5 sm:px-3 sm:py-1 text-slate-800 font-black text-lg sm:text-xl shadow-[2px_2px_0px_#0f172a] rounded-lg">${p}</span>${idx < randomPool.length-1 ? '<span class="text-slate-400 font-bold self-center text-xl sm:text-2xl mx-1">×</span>' : ''}`
+                `<span class="inline-block bg-yellow-100 border-yellow-400 border-4 px-4 py-2 text-slate-800 font-black text-3xl shadow-[2px_2px_0px_#0f172a] rounded-lg">${p}</span>${idx < randomPool.length-1 ? '<span class="text-slate-400 font-bold self-center text-3xl mx-2">×</span>' : ''}`
             ).join('');
             
             document.getElementById('s3-input-container').innerHTML = '';
@@ -950,15 +1058,15 @@
 
         function createInputTerm() {
             const termDiv = document.createElement('div');
-            termDiv.className = 'flex items-center gap-1 relative group term-group';
+            termDiv.className = 'flex items-center gap-2 relative group term-group';
             termDiv.innerHTML = `
-                <div class="flex flex-col items-center"><span class="text-[10px] font-black text-slate-500 mb-0.5">底數</span><input type="number" inputmode="none" class="base-input shadow-sm" placeholder="?"></div>
-                <div class="flex flex-col items-center"><span class="text-[10px] font-black text-slate-500 mb-0.5">次方</span><input type="number" inputmode="none" class="exp-input shadow-sm relative -top-3" placeholder="1"></div>
-                <button type="button" class="btn-remove-term absolute -right-3 -top-3 bg-rose-500 text-white border-2 border-slate-900 rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 text-xs font-bold shadow-sm">×</button>
+                <div class="flex flex-col items-center"><span class="text-xs font-black text-slate-500 mb-1">底數</span><input type="number" inputmode="none" class="base-input shadow-sm" placeholder="?"></div>
+                <div class="flex flex-col items-center"><span class="text-xs font-black text-slate-500 mb-1">次方</span><input type="number" inputmode="none" class="exp-input shadow-sm relative -top-4" placeholder="1"></div>
+                <button type="button" class="btn-remove-term absolute -right-4 -top-4 bg-rose-500 text-white border-2 border-slate-900 rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 text-sm font-bold shadow-sm">×</button>
             `;
             const container = document.getElementById('s3-input-container');
             if (container.children.length > 0) {
-                const mSpan = document.createElement('span'); mSpan.className = 'mx-1 text-2xl sm:text-3xl font-black text-slate-300 self-end mb-2'; mSpan.innerHTML = '&times;';
+                const mSpan = document.createElement('span'); mSpan.className = 'mx-2 text-4xl font-black text-slate-300 self-end mb-4'; mSpan.innerHTML = '&times;';
                 container.appendChild(mSpan);
             }
             container.appendChild(termDiv);
@@ -971,7 +1079,7 @@
             children.forEach(child => {
                 if (child.classList.contains('term-group')) {
                     if (termCount > 0) {
-                        const mSpan = document.createElement('span'); mSpan.className = 'mx-1 text-2xl sm:text-3xl font-black text-slate-300 self-end mb-2'; mSpan.innerHTML = '&times;';
+                        const mSpan = document.createElement('span'); mSpan.className = 'mx-2 text-4xl font-black text-slate-300 self-end mb-4'; mSpan.innerHTML = '&times;';
                         container.appendChild(mSpan);
                     }
                     container.appendChild(child); termCount++;
@@ -1018,7 +1126,7 @@
             box.classList.remove('hidden-stage', 'bg-green-100', 'bg-rose-100', 'border-green-400', 'border-rose-400');
             box.classList.add(isSuccess ? 'bg-green-100' : 'bg-rose-100', isSuccess ? 'border-green-400' : 'border-rose-400');
             document.getElementById('s3-feedback-title').textContent = isSuccess ? "🏆 完全正確！" : "🤔 差一點點...";
-            document.getElementById('s3-feedback-title').className = `text-base sm:text-lg font-black mb-0.5 ${isSuccess ? 'text-green-700' : 'text-rose-600'}`;
+            document.getElementById('s3-feedback-title').className = `text-lg sm:text-xl font-black mb-1 ${isSuccess ? 'text-green-700' : 'text-rose-600'}`;
             document.getElementById('s3-feedback-desc').textContent = text;
             if (isSuccess) document.getElementById('s3-success-actions').classList.remove('hidden-stage');
             else document.getElementById('s3-success-actions').classList.add('hidden-stage');
@@ -1026,14 +1134,218 @@
 
         document.getElementById('btn-restart-all').addEventListener('click', () => jumpToStage(2));
 
+        let s4Config = { topic: 'prime', diff: 1, count: 5, mode: 'single' };
+        let s4State = { qIndex: 0, questions: [], p1Score: 0, p2Score: 0, locked: false };
+        const BASIC_PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
+        
+        function initStage4() {
+            document.getElementById('s4-setup').classList.remove('hidden-stage');
+            document.getElementById('s4-quiz').classList.add('hidden-stage');
+            document.getElementById('s4-result').classList.add('hidden-stage');
+        }
 
-        // --- STREAMING_CHUNK:Floating Keypad Logic... ---
+        document.querySelectorAll('.s4-opt-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const group = e.target.parentElement;
+                group.querySelectorAll('.s4-opt-btn').forEach(b => {
+                    b.classList.remove('active', 'bg-orange-500', 'bg-green-500', 'bg-blue-500', 'bg-indigo-500', 'text-white');
+                    b.classList.add('bg-slate-100', 'text-slate-700');
+                });
+                e.target.classList.remove('bg-slate-100', 'text-slate-700');
+                e.target.classList.add('active', 'text-white');
+                
+                if (group.id === 's4-topic-group') e.target.classList.add('bg-orange-500');
+                if (group.id === 's4-diff-group') e.target.classList.add('bg-green-500');
+                if (group.id === 's4-count-group') e.target.classList.add('bg-blue-500');
+                if (group.id === 's4-mode-group') e.target.classList.add('bg-indigo-500');
+            });
+        });
+
+        document.getElementById('btn-start-s4').addEventListener('click', () => {
+            s4Config.topic = document.querySelector('#s4-topic-group .active').dataset.val;
+            s4Config.diff = parseInt(document.querySelector('#s4-diff-group .active').dataset.val);
+            s4Config.count = parseInt(document.querySelector('#s4-count-group .active').dataset.val);
+            s4Config.mode = document.querySelector('#s4-mode-group .active').dataset.val;
+            startS4Quiz();
+        });
+
+        function startS4Quiz() {
+            s4State = { qIndex: 0, questions: [], p1Score: 0, p2Score: 0, locked: false, p1Wrong: false, p2Wrong: false };
+            for(let i=0; i<s4Config.count; i++) s4State.questions.push(generateS4Question(s4Config.topic, s4Config.diff));
+            
+            document.getElementById('s4-setup').classList.add('hidden-stage');
+            document.getElementById('s4-quiz').classList.remove('hidden-stage');
+            
+            if(s4Config.mode === 'multi') {
+                document.getElementById('s4-p2-area').classList.remove('hidden-stage');
+                document.getElementById('s4-vs-divider').classList.remove('hidden-stage');
+                document.getElementById('s4-single-score-ui').classList.add('hidden-stage');
+                document.querySelectorAll('.s4-multi-label').forEach(el => el.classList.remove('hidden-stage'));
+            } else {
+                document.getElementById('s4-p2-area').classList.add('hidden-stage');
+                document.getElementById('s4-vs-divider').classList.add('hidden-stage');
+                document.getElementById('s4-single-score-ui').classList.remove('hidden-stage');
+                document.querySelectorAll('.s4-multi-label').forEach(el => el.classList.add('hidden-stage'));
+            }
+            renderS4Question();
+        }
+
+        function generateS4Question(topic, diff) {
+            let actualTopic = topic === 'mixed' ? ['prime', 'factor', 'standard'][Math.floor(Math.random()*3)] : topic;
+            let q = { text: "", options: [] };
+            let maxNum = diff === 1 ? 50 : diff === 2 ? 120 : 250;
+            
+            if (actualTopic === 'prime') {
+                let p = BASIC_PRIMES[Math.floor(Math.random() * (diff === 1 ? 10 : 20))];
+                let composites = [];
+                while(composites.length < 3) {
+                    let c = Math.floor(Math.random() * maxNum) + 4;
+                    if(!isPrime(c) && !composites.includes(c)) composites.push(c);
+                }
+                q.text = "下列哪一個數是「質數」？";
+                q.options = [{text: p.toString(), correct: true}, ...composites.map(c => ({text: c.toString(), correct: false}))];
+            } 
+            else if (actualTopic === 'factor') {
+                let target = 0, pFacts = [];
+                do {
+                    target = Math.floor(Math.random() * maxNum) + 12;
+                    let temp = target; pFacts = [];
+                    for(let i=2; i<=temp; i++) {
+                        if(temp%i===0) { if(!pFacts.includes(i)) pFacts.push(i); while(temp%i===0) temp/=i; }
+                    }
+                } while(pFacts.length < 2);
+                
+                let correctP = pFacts[Math.floor(Math.random()*pFacts.length)];
+                let wrongs = [];
+                while(wrongs.length < 3) {
+                    let w = BASIC_PRIMES[Math.floor(Math.random() * 15)];
+                    if(!pFacts.includes(w) && !wrongs.includes(w)) wrongs.push(w);
+                }
+                q.text = `下列哪一個是 ${target} 的質因數？`;
+                q.options = [{text: correctP.toString(), correct: true}, ...wrongs.map(w => ({text: w.toString(), correct: false}))];
+            }
+            else {
+                let target = 0, pFacts = [];
+                do {
+                    target = Math.floor(Math.random() * (diff===1 ? 60 : diff===2 ? 150 : 300)) + 12;
+                    let temp = target; pFacts = [];
+                    for(let i=2; i<=temp; i++) {
+                        while(temp%i===0) { pFacts.push(i); temp/=i; }
+                    }
+                } while(pFacts.length < 3);
+                
+                let correctStr = formatStandardFormStr(pFacts);
+                q.text = `${target} 的標準分解式為何？`;
+                
+                let w1 = [...pFacts]; w1[0] = w1[0] === 2 ? 3 : 2; 
+                let w2 = [...pFacts]; w2.push(w2[w2.length-1]); 
+                let w3 = [...pFacts]; if(w3.length>1) w3.pop(); 
+                
+                q.options = [
+                    {text: correctStr, correct: true},
+                    {text: formatStandardFormStr(w1), correct: false},
+                    {text: formatStandardFormStr(w2), correct: false},
+                    {text: formatStandardFormStr(w3), correct: false}
+                ];
+            }
+            q.options.sort(() => Math.random() - 0.5); // Shuffle
+            return q;
+        }
+
+        function formatStandardFormStr(factors) {
+            factors.sort((a,b)=>a-b);
+            let counts = {}; factors.forEach(f => counts[f] = (counts[f]||0)+1);
+            return Object.keys(counts).map(Number).sort((a,b)=>a-b).map(b => counts[b]>1 ? `${b}<sup>${counts[b]}</sup>` : `${b}`).join(' × ');
+        }
+
+        function renderS4Question() {
+            if(s4State.qIndex >= s4Config.count) { endS4Quiz(); return; }
+            s4State.locked = false; s4State.p1Wrong = false; s4State.p2Wrong = false;
+            
+            document.getElementById('s4-progress').textContent = `題數: ${s4State.qIndex + 1}/${s4Config.count}`;
+            document.getElementById('s4-single-score-ui').textContent = `Score: ${s4State.p1Score}`;
+            document.getElementById('s4-p1-score').textContent = s4State.p1Score;
+            document.getElementById('s4-p2-score').textContent = s4State.p2Score;
+            
+            const q = s4State.questions[s4State.qIndex];
+            document.getElementById('s4-question-text').innerHTML = q.text;
+            
+            const renderBtns = (containerId, player) => {
+                const container = document.getElementById(containerId);
+                container.innerHTML = '';
+                q.options.forEach((opt) => {
+                    const btn = document.createElement('button');
+                    btn.className = `arcade-btn bg-white hover:bg-slate-100 text-slate-800 text-2xl sm:text-4xl lg:text-5xl font-black py-6 shadow-[4px_4px_0px_#0f172a] num-font transition-colors w-full h-full flex items-center justify-center ${player==='p1' ? 'hover:bg-red-100 border-red-200' : 'hover:bg-blue-100 border-blue-200'}`;
+                    btn.innerHTML = opt.text;
+                    btn.onclick = () => handleS4Answer(opt.correct, player, btn);
+                    container.appendChild(btn);
+                });
+            };
+            
+            renderBtns('s4-p1-options', 'p1');
+            if(s4Config.mode === 'multi') renderBtns('s4-p2-options', 'p2');
+        }
+
+        function handleS4Answer(isCorrect, player, btnEl) {
+            if(s4State.locked) return;
+            if(player === 'p1' && s4State.p1Wrong) return;
+            if(player === 'p2' && s4State.p2Wrong) return;
+
+            if (isCorrect) {
+                s4State.locked = true;
+                btnEl.classList.remove('bg-white');
+                btnEl.classList.add('bg-green-500', 'text-white', 'border-green-700');
+                
+                if(player === 'p1') s4State.p1Score += 10;
+                if(player === 'p2') s4State.p2Score += 10;
+                setTimeout(() => { s4State.qIndex++; renderS4Question(); }, 800);
+            } else {
+                btnEl.classList.remove('bg-white');
+                btnEl.classList.add('bg-slate-300', 'text-slate-500', 'opacity-50');
+                playErrorAnim(btnEl.parentElement.parentElement.id);
+                
+                if(player === 'p1') { s4State.p1Score = Math.max(0, s4State.p1Score - 5); s4State.p1Wrong = true; document.getElementById('s4-p1-score').textContent = s4State.p1Score; }
+                if(player === 'p2') { s4State.p2Score = Math.max(0, s4State.p2Score - 5); s4State.p2Wrong = true; document.getElementById('s4-p2-score').textContent = s4State.p2Score; }
+                
+                if(s4Config.mode === 'single' || (s4State.p1Wrong && s4State.p2Wrong)) {
+                    s4State.locked = true; 
+                    setTimeout(() => { s4State.qIndex++; renderS4Question(); }, 800);
+                }
+            }
+            if (s4Config.mode === 'single') document.getElementById('s4-single-score-ui').textContent = `Score: ${s4State.p1Score}`;
+        }
+
+        function endS4Quiz() {
+            document.getElementById('s4-quiz').classList.add('hidden-stage');
+            document.getElementById('s4-result').classList.remove('hidden-stage');
+            
+            if(s4Config.mode === 'single') {
+                document.getElementById('s4-single-result').classList.remove('hidden-stage');
+                document.getElementById('s4-multi-result').classList.add('hidden-stage');
+                document.getElementById('s4-final-score-single').textContent = s4State.p1Score;
+                document.getElementById('s4-winner-text').textContent = s4State.p1Score >= (s4Config.count*8) ? "🌟 太強了！質數大師！" : "👏 表現不錯，繼續加油！";
+            } else {
+                document.getElementById('s4-single-result').classList.add('hidden-stage');
+                document.getElementById('s4-multi-result').classList.remove('hidden-stage');
+                document.getElementById('s4-final-score-p1').textContent = s4State.p1Score;
+                document.getElementById('s4-final-score-p2').textContent = s4State.p2Score;
+                
+                let winText = "";
+                if(s4State.p1Score > s4State.p2Score) winText = "🏆 P1 (左側) 獲勝！";
+                else if(s4State.p2Score > s4State.p1Score) winText = "🏆 P2 (右側) 獲勝！";
+                else winText = "🤝 勢均力敵，平手！";
+                document.getElementById('s4-winner-text').textContent = winText;
+            }
+        }
+
+        document.getElementById('btn-s4-restart').addEventListener('click', initStage4);
+
         const keypadEl = document.getElementById('floating-keypad');
         let activeInput = null, keypadScale = 1;
 
         window.addEventListener('DOMContentLoaded', () => {
-            keypadEl.style.left = `${Math.max(10, window.innerWidth - 240)}px`;
-            keypadEl.style.top = `${Math.max(10, window.innerHeight - 340)}px`;
+            keypadEl.style.left = `${Math.max(10, window.innerWidth - 260)}px`;
+            keypadEl.style.top = `${Math.max(10, window.innerHeight - 380)}px`;
         });
 
         document.addEventListener('focusin', (e) => {
@@ -1051,10 +1363,7 @@
             keypadEl.classList.toggle('hidden-stage'); 
             document.getElementById('btn-toggle-keypad').classList.remove('keypad-flash');
             const hint = document.getElementById('keypad-hint-container');
-            if(hint) {
-                hint.style.opacity = '0';
-                setTimeout(() => hint.remove(), 300);
-            }
+            if(hint) { hint.style.opacity = '0'; setTimeout(() => hint.remove(), 300); }
         }
         
         function typeKeypad(action) {
@@ -1109,8 +1418,7 @@
             startRect = { 
                 mouseX: pt.clientX, mouseY: pt.clientY, 
                 scale: keypadScale, 
-                left: parseFloat(keypadEl.style.left), 
-                top: parseFloat(keypadEl.style.top), 
+                left: parseFloat(keypadEl.style.left), top: parseFloat(keypadEl.style.top), 
                 baseWidth: keypadEl.offsetWidth 
             };
         }
@@ -1126,23 +1434,18 @@
             
             if (isDragging) {
                 e.preventDefault();
-                let newLeft = pt.clientX - dragOffset.x;
-                let newTop = pt.clientY - dragOffset.y;
-                newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - 50));
-                newTop = Math.max(0, Math.min(newTop, window.innerHeight - 50));
+                let newLeft = Math.max(0, Math.min(pt.clientX - dragOffset.x, window.innerWidth - 50));
+                let newTop = Math.max(0, Math.min(pt.clientY - dragOffset.y, window.innerHeight - 50));
                 keypadEl.style.left = `${newLeft}px`;
                 keypadEl.style.top = `${newTop}px`;
             } 
             else if (isResizing) {
                 e.preventDefault();
                 let dx = pt.clientX - startRect.mouseX;
-                let dy = pt.clientY - startRect.mouseY;
                 let scaleDiff = 0;
                 
-                if(currentCorner === 'se') scaleDiff = dx / startRect.baseWidth;
-                else if(currentCorner === 'sw') scaleDiff = -dx / startRect.baseWidth;
-                else if(currentCorner === 'ne') scaleDiff = dx / startRect.baseWidth;
-                else if(currentCorner === 'nw') scaleDiff = -dx / startRect.baseWidth;
+                if(currentCorner === 'se' || currentCorner === 'ne') scaleDiff = dx / startRect.baseWidth;
+                else if(currentCorner === 'sw' || currentCorner === 'nw') scaleDiff = -dx / startRect.baseWidth;
 
                 let newScale = Math.max(0.7, Math.min(1.8, startRect.scale + scaleDiff));
                 keypadEl.style.transform = `scale(${newScale})`;
@@ -1151,13 +1454,8 @@
                 let newLeft = startRect.left;
                 let newTop = startRect.top;
                 
-                if(currentCorner === 'sw' || currentCorner === 'nw') {
-                    newLeft = startRect.left - (newScale - startRect.scale) * startRect.baseWidth;
-                }
-                if(currentCorner === 'nw' || currentCorner === 'ne') {
-                    const baseHeight = keypadEl.offsetHeight;
-                    newTop = startRect.top - (newScale - startRect.scale) * baseHeight;
-                }
+                if(currentCorner === 'sw' || currentCorner === 'nw') newLeft = startRect.left - (newScale - startRect.scale) * startRect.baseWidth;
+                if(currentCorner === 'nw' || currentCorner === 'ne') newTop = startRect.top - (newScale - startRect.scale) * keypadEl.offsetHeight;
                 
                 keypadEl.style.left = `${newLeft}px`;
                 keypadEl.style.top = `${newTop}px`;
