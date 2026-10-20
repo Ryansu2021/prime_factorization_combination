@@ -257,7 +257,9 @@ document.addEventListener('mouseover', (e) => {
 document.addEventListener('mousemove', (e) => {
     if (tip.classList.contains('hidden-v')) return;
     const x = Math.min(e.clientX + 14, window.innerWidth - tip.offsetWidth - 8);
-    tip.style.left = x + 'px'; tip.style.top = (e.clientY + 16) + 'px';
+    let y = e.clientY + 16;
+    if (y + tip.offsetHeight > window.innerHeight - 8) y = Math.max(8, e.clientY - tip.offsetHeight - 12);   // 太靠下面就顯示在上方
+    tip.style.left = Math.max(8, x) + 'px'; tip.style.top = y + 'px';
 });
 
 if (!isConfigured) {
