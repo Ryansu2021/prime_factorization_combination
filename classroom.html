@@ -1436,10 +1436,36 @@
         const keypadEl = document.getElementById('floating-keypad');
         let activeInput = null, keypadScale = 1;
 
-        window.addEventListener('DOMContentLoaded', () => {
-            keypadEl.style.left = `${Math.max(10, window.innerWidth - 260)}px`;
-            keypadEl.style.top = `${Math.max(10, window.innerHeight - 380)}px`;
-        });
+        // 鍵盤自動貼合螢幕：放不下就縮小，並保證整個鍵盤留在畫面內（手機橫放、旋轉、視窗縮放都適用）
+        let keypadPlaced = false;
+        function viewportSize() {
+            const vv = window.visualViewport;
+            return { w: vv ? vv.width : window.innerWidth, h: vv ? vv.height : window.innerHeight,
+                     x: vv ? vv.offsetLeft : 0, y: vv ? vv.offsetTop : 0 };
+        }
+        function fitKeypad(resetPosition) {
+            if (keypadEl.classList.contains('hidden-stage')) return;
+            const v = viewportSize(), M = 8;
+            const w = keypadEl.offsetWidth, h = keypadEl.offsetHeight;   // 未縮放的原始大小
+            if (!w || !h) return;
+            const maxScale = Math.min((v.w - 2 * M) / w, (v.h - 2 * M) / h);
+            if (keypadScale > maxScale) keypadScale = Math.max(0.45, maxScale);
+            keypadEl.style.transform = `scale(${keypadScale})`;
+            const vw = w * keypadScale, vh = h * keypadScale;
+            let left = parseFloat(keypadEl.style.left), top = parseFloat(keypadEl.style.top);
+            if (resetPosition || !keypadPlaced || isNaN(left) || isNaN(top)) {
+                left = v.x + v.w - vw - 16; top = v.y + v.h - vh - 16;   // 預設：右下角
+                keypadPlaced = true;
+            }
+            left = Math.min(Math.max(v.x + M, left), v.x + v.w - vw - M);
+            top = Math.min(Math.max(v.y + M, top), v.y + v.h - vh - M);
+            keypadEl.style.left = `${left}px`;
+            keypadEl.style.top = `${top}px`;
+        }
+        const refitKeypad = () => requestAnimationFrame(() => fitKeypad(false));
+        window.addEventListener('resize', refitKeypad);
+        window.addEventListener('orientationchange', () => setTimeout(() => fitKeypad(false), 300));
+        if (window.visualViewport) window.visualViewport.addEventListener('resize', refitKeypad);
 
         document.addEventListener('focusin', (e) => {
             if (e.target.tagName === 'INPUT' && e.target.type === 'number') {
@@ -1454,6 +1480,7 @@
 
         function toggleKeypad() { 
             keypadEl.classList.toggle('hidden-stage'); 
+            fitKeypad(false);
             document.getElementById('btn-toggle-keypad').classList.remove('keypad-flash');
             const hint = document.getElementById('keypad-hint-container');
             if(hint) { hint.style.opacity = '0'; setTimeout(() => hint.remove(), 300); }
@@ -1518,8 +1545,9 @@
 
         document.addEventListener('mousemove', handleMove);
         document.addEventListener('touchmove', handleMove, {passive: false});
-        document.addEventListener('mouseup', () => { isDragging = isResizing = false; });
-        document.addEventListener('touchend', () => { isDragging = isResizing = false; });
+        const endDrag = () => { if (isDragging || isResizing) { isDragging = isResizing = false; fitKeypad(false); } };
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
 
         function handleMove(e) {
             if(!isDragging && !isResizing) return;
