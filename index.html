@@ -1504,20 +1504,45 @@
             }
         }
     </script>
-    <!-- 自動依螢幕縮放：可用空間小於設計尺寸時，整個關卡等比例縮小，不需全螢幕也能完整顯示 -->
+    <!-- 自動依螢幕縮放：
+         電腦／平板：整個關卡等比例縮小，一個畫面完整顯示、不需捲動
+         手機（直放，或橫放時高度太矮）：改為「可上下捲動」模式，橫放依寬度適度縮放，直放用原尺寸上下排列 -->
+    <style>
+        body.scroll-mode { height: auto !important; min-height: 100%; overflow-x: hidden !important; overflow-y: auto !important; }
+        body.scroll-mode header { position: static !important; }
+        body.scroll-mode main { flex: none !important; height: auto !important; overflow: visible !important; }
+        body.scroll-mode main > section { height: auto !important; min-height: 0 !important; }
+        body.scroll-mode main > section > div { flex: none !important; }
+        body.scroll-mode #s2-gameplay > div { min-width: 0; }
+        body.scroll-mode #s2-gameplay > div > div { flex: none !important; }
+        body.scroll-mode #prime-hints-bar { overflow: visible !important; }
+        body.scroll-mode #s2-tree-area { flex: none !important; min-height: 320px; }
+        body.scroll-mode #s2-linear-area { flex: none !important; }
+        body.scroll-mode #s2-history { flex: none !important; min-height: 160px; }
+        body.scroll-mode #chain-grid { height: auto !important; width: min(100%, 460px) !important; }
+        body.scroll-mode #stage-1 > div:last-child > div:first-child, body.scroll-mode #stage-1 > div:last-child > div:first-child > div { flex: none !important; }
+        body.scroll-mode #stage-1 > div:last-child > div:last-child > div { flex: none !important; min-height: 220px; }
+        body.scroll-mode #stage-3 > div:last-child > div { flex: none !important; }
+        body.scroll-mode #s4-answers-container, body.scroll-mode #s4-quiz > div { flex: none !important; }
+        body.scroll-mode #s4-p1-options button, body.scroll-mode #s4-p2-options button { min-height: 72px; }
+    </style>
     <script>
     (function () {
         const FIT_MIN_W = 1024;      // 設計最小寬度 (px)
         const FIT_MIN_H = 700;       // 設計最小高度 (px，不含上方標題列)
-        const FIT_MIN_SCALE = 0.5;   // 最多縮到 50%
+        const FIT_MIN_SCALE = 0.6;   // 整頁縮放低於此值就太小了 → 改用可捲動模式
         // 這些區塊必須完整顯示（不應出現捲軸）；若仍會捲動就再縮小一點
         const MUST_FIT = ['#prime-hints-bar', '#stage-4 > .overflow-y-auto', '#stage-1 > div:last-child'];
         const main = document.querySelector('main');
         const sections = () => main.querySelectorAll(':scope > section');
         let W = 0, H = 0;
 
-        function apply(s) {
+        function clearAll() {
+            sections().forEach(sec => { sec.style.width = sec.style.height = sec.style.flex = sec.style.transform = sec.style.zoom = ''; });
+        }
+        function applyFit(s) {
             sections().forEach(sec => {
+                sec.style.zoom = '';
                 if (s < 1) {
                     sec.style.width = (W / s) + 'px';
                     sec.style.height = (H / s) + 'px';
@@ -1535,19 +1560,40 @@
                 return el && el.offsetParent !== null && el.scrollHeight > el.clientHeight + 2;
             });
         }
-        function fitStages() {
+        function measure() {
             const cs = getComputedStyle(main);
             W = main.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
             H = main.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-            // 手機直式 (寬 < 640) 維持原本的上下排列，不縮放
-            if (window.innerWidth < 640) { apply(1); return; }
+        }
+        function scrollMode() {
+            document.body.classList.add('scroll-mode');
+            clearAll();
+            const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+            // 橫放（寬度足夠左右並排）時依寬度縮放；直放維持原尺寸、上下排列
+            const z = vw >= 640 ? Math.min(1, (vw - 32) / FIT_MIN_W) : 1;
+            if (z < 1) sections().forEach(sec => sec.style.zoom = z);
+        }
+        let lastKey = '';
+        function fitStages() {
+            const vw = window.innerWidth;
+            if (vw < 640) { scrollMode(); return; }               // 手機直放
+            // 已是捲動模式且螢幕大小沒變（只是內容高度改變、或網址列伸縮）→ 維持，不重新判斷，避免來回切換
+            const key = vw + 'x' + Math.round(window.innerHeight / 80);
+            if (document.body.classList.contains('scroll-mode') && key === lastKey) { scrollMode(); return; }
+            lastKey = key;
+            document.body.classList.remove('scroll-mode');
+            clearAll(); measure();
             let s = Math.min(1, W / FIT_MIN_W, H / FIT_MIN_H);
-            apply(s);
-            while (s > FIT_MIN_SCALE && overflowing()) { s = Math.max(FIT_MIN_SCALE, s - 0.03); apply(s); }
+            if (s < FIT_MIN_SCALE) { scrollMode(); return; }     // 手機橫放：畫面太矮
+            applyFit(s);
+            while (s > FIT_MIN_SCALE && overflowing()) { s = Math.max(FIT_MIN_SCALE, s - 0.03); applyFit(s); }
+            if (overflowing()) scrollMode();
         }
         let pending = false;
         const schedule = () => { if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; fitStages(); }); } };
         window.addEventListener('resize', schedule);
+        window.addEventListener('orientationchange', () => setTimeout(fitStages, 300));
+        if (window.visualViewport) window.visualViewport.addEventListener('resize', schedule);
         if (window.ResizeObserver) new ResizeObserver(schedule).observe(main);
         // 切換關卡、產生題目、提示泡泡出現時重新計算
         new MutationObserver(schedule).observe(main, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
