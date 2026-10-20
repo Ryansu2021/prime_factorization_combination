@@ -703,7 +703,7 @@
             { vId: 15, badge: 16, arrow: '' }, { vId: 14, badge: 15, arrow: 'left' }, { vId: 13, badge: 14, arrow: 'left' }, { vId: 12, badge: 13, arrow: 'left' }
         ];
         // 實際可以玩的 14 個格子位置 (避開 5 和 9)
-        const PLAYABLE_ORDER = [0, 1, 2, 3, 7, 6, 4, 8, 10, 11, 15, 14, 13, 12];
+        const PLAYABLE_ORDER = [0, 1, 2, 3, 4, 6, 7, 8, 10, 11, 12, 13, 14, 15]; // vId = 徽章號碼 - 1，依徽章 1→16 順序（跳過 6、10）
         const TARGET_CHAIN_LENGTH = 8;
         const MAX_CHAIN_LENGTH = 14;
 
