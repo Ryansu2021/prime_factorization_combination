@@ -554,7 +554,7 @@ if (!isConfigured) {
     };
 
     // ===== 放大課堂代碼 =====
-    const studentUrl = () => new URL('./', location.href).href;
+    const studentUrl = () => new URL('./classroom.html', location.href).href;
     $('btn-show-code').onclick = () => {
         $('code-modal-code').textContent = session.code;
         $('code-modal-url').textContent = studentUrl();
