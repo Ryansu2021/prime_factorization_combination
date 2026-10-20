@@ -148,6 +148,10 @@
                     🎮 數字大挑戰
                 </h1>
                 <span class="text-[10px] sm:text-xs text-slate-500 font-bold tracking-wider mt-0.5">台南市忠孝國中數學王子蘇恭弘製作</span>
+                <span id="class-chip" class="hidden-stage mt-1 self-center sm:self-start inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-black px-2 py-0.5 rounded-full border-2 border-slate-900 bg-slate-100 text-slate-700">
+                    <span id="class-chip-dot" class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                    <span id="class-chip-text"></span>
+                </span>
             </div>
             <!-- 進度條導覽 (包含第一~四關) -->
             <div class="flex items-center gap-1 sm:gap-2 lg:gap-4 text-xs sm:text-base font-black tracking-wide overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 justify-center">
@@ -553,7 +557,67 @@
     </div>
 
     <script>
-        const navSteps = [document.getElementById('nav-step-1'), document.getElementById('nav-step-2'), document.getElementById('nav-step-3'), document.getElementById('nav-step-4')];
+        // ================= 作答紀錄（教師即時監控用） =================
+        // 只記錄老師在課堂上用得到的摘要資訊；未設定 Firebase 時只存在本機、不上傳。
+        const REC = {
+            stage: 1, maxStage: 1, errStreak: 0, errWhere: '',
+            l1: { cells: 0, maxCells: 0, passed: false, wrongNums: [], notPrime: 0, link: 0, dup: 0, range: 0, hints: 0, undos: 0 },
+            l2: { mode: '', done: 0, lastNum: null, compositeAsPrime: 0, wrongPrimes: [], notDivisor: 0, quotient: 0 },
+            l3: { passed: false, fails: 0, errEmpty: 0, errCount: 0, errOrder: 0, errValue: 0 },
+            l4: { rounds: 0, multiRounds: 0, finished: false, lastScore: null, lastCount: null, bestRate: null,
+                  answered: 0, correct: 0, primeMisses: [],
+                  byTopic: { prime: { c: 0, t: 0 }, factor: { c: 0, t: 0 }, standard: { c: 0, t: 0 } } }
+        };
+        let __syncTimer = null, __roundAnswered = 0, __roundCorrect = 0;
+        function scheduleSync(immediate) {
+            if (!window.__tracker) return;
+            clearTimeout(__syncTimer);
+            __syncTimer = setTimeout(() => window.__tracker.push(), immediate ? 0 : 1500);
+        }
+        function addUnique(arr, v, cap = 40) { if (!arr.includes(v) && arr.length < cap) arr.push(v); }
+        const trk = {
+            err(where) { REC.errStreak = (REC.errWhere === where ? REC.errStreak : 0) + 1; REC.errWhere = where; scheduleSync(); },
+            ok() { REC.errStreak = 0; REC.errWhere = ''; scheduleSync(); },
+            stage(n) { REC.stage = n; REC.maxStage = Math.max(REC.maxStage, n); trk.ok(); },
+            // 第一關
+            l1NotPrime(v) { REC.l1.notPrime++; addUnique(REC.l1.wrongNums, v); trk.err('l1'); },
+            l1Link() { REC.l1.link++; trk.err('l1'); },
+            l1Dup() { REC.l1.dup++; trk.err('l1'); },
+            l1Range() { REC.l1.range++; trk.err('l1'); },
+            l1Cells(n, viaUndo) {
+                REC.l1.cells = n; REC.l1.maxCells = Math.max(REC.l1.maxCells, n);
+                if (REC.l1.maxCells >= 8) REC.l1.passed = true;
+                viaUndo ? scheduleSync() : trk.ok();
+            },
+            l1Undo(n) { REC.l1.undos++; trk.l1Cells(n, true); },
+            l1Hint() { REC.l1.hints++; scheduleSync(); },
+            // 第二關
+            l2Mode(m) { REC.l2.mode = m; scheduleSync(true); },
+            l2NotDivisor() { REC.l2.notDivisor++; trk.err('l2'); },
+            l2Composite(p) { REC.l2.compositeAsPrime++; if (p > 1) addUnique(REC.l2.wrongPrimes, p); trk.err('l2'); },
+            l2Quotient() { REC.l2.quotient++; trk.err('l2'); },
+            l2Step() { trk.ok(); },
+            l2Done(n) { REC.l2.done++; REC.l2.lastNum = n; trk.ok(); },
+            // 第三關
+            l3Fail(type) { REC.l3.fails++; REC.l3[type]++; trk.err('l3'); },
+            l3Pass() { REC.l3.passed = true; trk.ok(); },
+            // 第四關（雙人對戰模式共用同一台裝置，不計入個人答對率）
+            l4Start(mode) { if (mode === 'multi') { REC.l4.multiRounds++; } __roundAnswered = 0; __roundCorrect = 0; scheduleSync(); },
+            l4Answer(topic, correct, chosen) {
+                REC.l4.answered++; __roundAnswered++;
+                if (REC.l4.byTopic[topic]) REC.l4.byTopic[topic].t++;
+                if (correct) { REC.l4.correct++; __roundCorrect++; if (REC.l4.byTopic[topic]) REC.l4.byTopic[topic].c++; trk.ok(); }
+                else { if (topic === 'prime') addUnique(REC.l4.primeMisses, parseInt(chosen)); trk.err('l4'); }
+            },
+            l4End(score, count) {
+                REC.l4.rounds++; REC.l4.finished = true; REC.l4.lastScore = score; REC.l4.lastCount = count;
+                const rate = __roundAnswered ? Math.round(__roundCorrect / __roundAnswered * 100) : 0;
+                REC.l4.bestRate = Math.max(REC.l4.bestRate ?? 0, rate);
+                trk.ok(); scheduleSync(true);
+            }
+        };
+
+        const navSteps =[document.getElementById('nav-step-1'), document.getElementById('nav-step-2'), document.getElementById('nav-step-3'), document.getElementById('nav-step-4')];
         const stages = [document.getElementById('stage-1'), document.getElementById('stage-2'), document.getElementById('stage-3'), document.getElementById('stage-4')];
         let currentStage = 1;
 
@@ -608,6 +672,7 @@
                 }
             });
             currentStage = targetStageIndex;
+            trk.stage(targetStageIndex);
             
             if(targetStageIndex === 1) { initStage1(); }
             else if(targetStageIndex === 2) {
@@ -677,6 +742,7 @@
                 chainPath = chainPath.slice(0, pathIdx);
                 stage1Typing = '';
                 updateChainUI();
+                trk.l1Undo(chainPath.length);
             } else if (vId === PLAYABLE_ORDER[chainPath.length]) {
                 stage1Typing = '';
                 updateChainUI();
@@ -758,14 +824,14 @@
             
             const val = parseInt(stage1Typing);
 
-            if (isNaN(val) || val < 2 || val > 100) { showChainMsg("請輸入 1~100 內的質數！", true); stage1Typing=''; updateChainUI(); return; }
-            if (!isPrime(val)) { showChainMsg(`${val} 不是質數喔！`, true); stage1Typing=''; updateChainUI(); return; }
-            if (chainPath.some(idx => chainGrid[idx] === val)) { showChainMsg("質數重複了！不能用一樣的數字。", true); stage1Typing=''; updateChainUI(); return; }
+            if (isNaN(val) || val < 2 || val > 100) { trk.l1Range(); showChainMsg("請輸入 1~100 內的質數！", true); stage1Typing=''; updateChainUI(); return; }
+            if (!isPrime(val)) { trk.l1NotPrime(val); showChainMsg(`${val} 不是質數喔！`, true); stage1Typing=''; updateChainUI(); return; }
+            if (chainPath.some(idx => chainGrid[idx] === val)) { trk.l1Dup(); showChainMsg("質數重複了！不能用一樣的數字。", true); stage1Typing=''; updateChainUI(); return; }
 
             if (chainPath.length > 0) {
                 const lastPrime = chainGrid[chainPath[chainPath.length - 1]];
                 if ((lastPrime % 10).toString() !== val.toString()[0]) {
-                    showChainMsg(`必須以數字 ${lastPrime % 10} 開頭！`, true); 
+                    trk.l1Link(); showChainMsg(`必須以數字 ${lastPrime % 10} 開頭！`, true); 
                     playErrorAnim('chain-grid'); stage1Typing=''; updateChainUI(); return;
                 }
             }
@@ -775,6 +841,7 @@
             chainPath.push(nextIdx);
             stage1Typing = '';
             updateChainUI();
+            trk.l1Cells(chainPath.length);
             
             if (chainPath.length === MAX_CHAIN_LENGTH) showChainMsg("🎉 14格全滿！你太強了！終極挑戰成功！", false);
             else if (chainPath.length === TARGET_CHAIN_LENGTH) showChainMsg("🎯 達成 8 個過關條件！可前往下一關，或繼續填滿！", false);
@@ -782,9 +849,10 @@
         }
 
         document.getElementById('btn-chain-undo').addEventListener('click', () => {
-            if(chainPath.length > 0) { const lastIdx = chainPath.pop(); chainGrid[lastIdx] = null; stage1Typing = ''; updateChainUI(); }
+            if(chainPath.length > 0) { const lastIdx = chainPath.pop(); chainGrid[lastIdx] = null; stage1Typing = ''; updateChainUI(); trk.l1Undo(chainPath.length); }
         });
         document.getElementById('btn-chain-hint').addEventListener('click', () => {
+            trk.l1Hint();
             if(chainPath.length === 0) showChainMsg("第一格可以隨意填入 2, 3, 5, 7, 11...");
             else showChainMsg(`請找開頭是數字 ${chainGrid[chainPath[chainPath.length - 1]] % 10} 的質數！`);
         });
@@ -818,6 +886,7 @@
 
         function startS2Gameplay(withHints) {
             s2HasHints = withHints;
+            trk.l2Mode(withHints ? '不熟（樹狀圖）' : '很熟（直接分解）');
             document.getElementById('s2-mode-selection').classList.add('hidden-stage');
             document.getElementById('s2-gameplay').classList.remove('hidden-stage'); 
             
@@ -923,7 +992,7 @@
         function processTreePrime(p) {
             if (!s2TreeActiveNode || s2TreeActiveNode.left.val !== '?') return;
             if (s2TreeActiveNode.val % p !== 0) {
-                showS2Message(`${p} 不能整除 ${s2TreeActiveNode.val} 喔！`, true); playErrorAnim('s2-tree-area'); return;
+                trk.l2NotDivisor(); showS2Message(`${p} 不能整除 ${s2TreeActiveNode.val} 喔！`, true); playErrorAnim('s2-tree-area'); return;
             }
             document.getElementById('s2-message-box').classList.add('hidden-stage');
             s2TreeActiveNode.left.val = p; 
@@ -935,7 +1004,7 @@
             if (isNaN(q)) { showS2Message('請填寫商數數字！', true); return; }
             const expectedP = s2TreeActiveNode.left.val;
             if (expectedP * q !== s2TreeActiveNode.val) {
-                showS2Message(`${expectedP} × ${q} 不等於 ${s2TreeActiveNode.val} 喔！再算算看`, true); playErrorAnim('tree-quotient-input'); return;
+                trk.l2Quotient(); showS2Message(`${expectedP} × ${q} 不等於 ${s2TreeActiveNode.val} 喔！再算算看`, true); playErrorAnim('tree-quotient-input'); return;
             }
 
             document.getElementById('s2-message-box').classList.add('hidden-stage');
@@ -947,6 +1016,7 @@
 
             if (qIsPrime) {
                 s2CollectedPrimes.push(q);
+                trk.l2Done(s2OriginalNum);
                 s2TreeActiveNode = null; 
                 updateTreeUI();
                 btnToStage3.classList.remove('hidden-stage');
@@ -954,6 +1024,7 @@
                 const container = document.getElementById('s2-tree-area');
                 container.scrollTop = container.scrollHeight;
             } else {
+                trk.l2Step();
                 s2TreeActiveNode = s2TreeActiveNode.right; 
                 s2TreeActiveNode.left = {val: '?', isPrime: true};
                 s2TreeActiveNode.right = {val: '?', isPrime: false};
@@ -984,7 +1055,10 @@
 
         document.getElementById('form-prime').addEventListener('submit', (e) => {
             e.preventDefault(); const p = parseInt(document.getElementById('input-prime').value);
-            if (isNaN(p) || !isPrime(p) || s2CurrentNum % p !== 0) { showS2Message('請輸入正確且能整除的質因數！', true); return; }
+            if (isNaN(p) || !isPrime(p) || s2CurrentNum % p !== 0) {
+                if (!isNaN(p)) { if (!isPrime(p)) trk.l2Composite(p); else trk.l2NotDivisor(); }
+                showS2Message('請輸入正確且能整除的質因數！', true); return;
+            }
             document.getElementById('s2-message-box').classList.add('hidden-stage');
             s2TempPrime = p;
             document.getElementById('s2-step-prime').classList.add('hidden-stage');
@@ -996,15 +1070,16 @@
 
         document.getElementById('form-quotient').addEventListener('submit', (e) => {
             e.preventDefault(); const q = parseInt(document.getElementById('input-quotient').value);
-            if (isNaN(q) || s2TempPrime * q !== s2CurrentNum) { showS2Message('商數計算錯誤喔！', true); return; }
+            if (isNaN(q) || s2TempPrime * q !== s2CurrentNum) { trk.l2Quotient(); showS2Message('商數計算錯誤喔！', true); return; }
             document.getElementById('s2-message-box').classList.add('hidden-stage');
             s2CollectedPrimes.push(s2TempPrime); s2CurrentNum = q; s2CurrentNumDisplay.textContent = q;
             
             if (isPrime(s2CurrentNum)) {
                 s2CollectedPrimes.push(s2CurrentNum); s2CurrentNum = 1;
+                trk.l2Done(s2OriginalNum);
                 updateLinearUI(); document.getElementById('s2-step-quotient').classList.add('hidden-stage');
                 btnToStage3.classList.remove('hidden-stage'); showS2Message("🎉 分解完成！請前往下一關。", false);
-            } else { updateLinearUI(); resetLinearInputs(); }
+            } else { trk.l2Step(); updateLinearUI(); resetLinearInputs(); }
         });
         
         btnToStage3.addEventListener('click', () => jumpToStage(3));
@@ -1103,21 +1178,22 @@
                 userAnswers.push({ base: parseInt(bVal) || 0, exp: eVal.trim() === '' ? 1 : parseInt(eVal) });
             });
 
-            if (hasEmpty) { showS3Feedback(false, "請填寫所有的底數。"); playErrorAnim('s3-input-container'); return; }
-            if (userAnswers.length !== s3ExpectedFormat.length) { showS3Feedback(false, `項數錯誤，應該要有 ${s3ExpectedFormat.length} 個不同的底數。`); playErrorAnim('s3-input-container'); return; }
+            if (hasEmpty) { trk.l3Fail('errEmpty'); showS3Feedback(false, "請填寫所有的底數。"); playErrorAnim('s3-input-container'); return; }
+            if (userAnswers.length !== s3ExpectedFormat.length) { trk.l3Fail('errCount'); showS3Feedback(false, `項數錯誤，應該要有 ${s3ExpectedFormat.length} 個不同的底數。`); playErrorAnim('s3-input-container'); return; }
             
             for (let i = 0; i < userAnswers.length - 1; i++) {
-                if (userAnswers[i].base >= userAnswers[i+1].base) { showS3Feedback(false, "底數必須「由小到大」排列喔！"); playErrorAnim('s3-input-container'); return; }
+                if (userAnswers[i].base >= userAnswers[i+1].base) { trk.l3Fail('errOrder'); showS3Feedback(false, "底數必須「由小到大」排列喔！"); playErrorAnim('s3-input-container'); return; }
             }
 
             let isCorrect = s3ExpectedFormat.every((exp, i) => exp.base === userAnswers[i].base && exp.exp === userAnswers[i].exp);
             if (isCorrect) {
+                trk.l3Pass();
                 showS3Feedback(true, "太棒了！您成功寫出了正確的標準分解式！");
                 document.querySelectorAll('.base-input, .exp-input').forEach(el => el.disabled = true);
                 document.getElementById('s3-buttons-bar').classList.add('hidden-stage'); 
                 markNavCompleted(3);
             } else {
-                showS3Feedback(false, "計算有誤，請再檢查一次底數與次數。"); playErrorAnim('s3-input-container');
+                trk.l3Fail('errValue'); showS3Feedback(false, "計算有誤，請再檢查一次底數與次數。"); playErrorAnim('s3-input-container');
             }
         });
 
@@ -1171,6 +1247,7 @@
 
         function startS4Quiz() {
             s4State = { qIndex: 0, questions: [], p1Score: 0, p2Score: 0, locked: false, p1Wrong: false, p2Wrong: false };
+            trk.l4Start(s4Config.mode);
             for(let i=0; i<s4Config.count; i++) s4State.questions.push(generateS4Question(s4Config.topic, s4Config.diff));
             
             document.getElementById('s4-setup').classList.add('hidden-stage');
@@ -1192,7 +1269,7 @@
 
         function generateS4Question(topic, diff) {
             let actualTopic = topic === 'mixed' ? ['prime', 'factor', 'standard'][Math.floor(Math.random()*3)] : topic;
-            let q = { text: "", options: [] };
+            let q = { text: "", options: [], topic: actualTopic };
             let maxNum = diff === 1 ? 50 : diff === 2 ? 120 : 250;
             
             if (actualTopic === 'prime') {
@@ -1290,6 +1367,7 @@
             if(s4State.locked) return;
             if(player === 'p1' && s4State.p1Wrong) return;
             if(player === 'p2' && s4State.p2Wrong) return;
+            if (s4Config.mode === 'single') trk.l4Answer(s4State.questions[s4State.qIndex].topic, isCorrect, btnEl.textContent);
 
             if (isCorrect) {
                 s4State.locked = true;
@@ -1320,6 +1398,7 @@
             document.getElementById('s4-result').classList.remove('hidden-stage');
             
             if(s4Config.mode === 'single') {
+                trk.l4End(s4State.p1Score, s4Config.count);
                 document.getElementById('s4-single-result').classList.remove('hidden-stage');
                 document.getElementById('s4-multi-result').classList.add('hidden-stage');
                 document.getElementById('s4-final-score-single').textContent = s4State.p1Score;
@@ -1460,6 +1539,181 @@
                 keypadEl.style.left = `${newLeft}px`;
                 keypadEl.style.top = `${newTop}px`;
             }
+        }
+    </script>
+
+    <!-- ================= 課堂登入畫面 ================= -->
+    <div id="join-overlay" class="hidden-stage fixed inset-0 z-[100] bg-pink-50/95 flex items-center justify-center p-4">
+        <form id="join-form" class="bg-white arcade-border w-full max-w-sm p-6 flex flex-col gap-4" autocomplete="off">
+            <div class="text-center">
+                <div class="text-4xl mb-1">🎮</div>
+                <h2 class="text-2xl font-black text-slate-900">加入課堂</h2>
+                <p class="text-sm font-bold text-slate-500 mt-1">輸入老師給的課堂代碼和你的座號</p>
+            </div>
+            <label class="flex flex-col gap-1">
+                <span class="font-black text-slate-700">課堂代碼</span>
+                <input id="join-code" type="text" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="4 位數字"
+                       class="arcade-input text-center text-3xl tracking-[0.4em] py-2" required>
+            </label>
+            <label class="flex flex-col gap-1">
+                <span class="font-black text-slate-700">座號</span>
+                <input id="join-seat" type="text" inputmode="numeric" maxlength="2" pattern="[1-9][0-9]?" placeholder="例如 7"
+                       class="arcade-input text-center text-3xl py-2" required>
+            </label>
+            <p id="join-error" class="hidden-stage text-center font-black text-sm text-rose-600 bg-rose-50 border-2 border-rose-300 rounded-lg p-2"></p>
+            <button id="join-btn" type="submit" class="arcade-btn bg-pink-500 hover:bg-pink-400 text-white text-xl py-3">進入挑戰 🚀</button>
+            <button id="join-skip" type="button" class="text-xs font-bold text-slate-400 underline hover:text-slate-600">不加入課堂，直接練習（不記錄）</button>
+        </form>
+    </div>
+
+    <!-- ================= 雲端同步（Firebase） ================= -->
+    <script type="module">
+        import { firebaseConfig, isConfigured } from './firebase-config.js';
+
+        const overlay = document.getElementById('join-overlay');
+        const chip = document.getElementById('class-chip');
+        const chipDot = document.getElementById('class-chip-dot');
+        const chipText = document.getElementById('class-chip-text');
+        const errEl = document.getElementById('join-error');
+        const btn = document.getElementById('join-btn');
+
+        function setChip(text, color) {
+            chip.classList.remove('hidden-stage');
+            chipText.textContent = text;
+            chipDot.className = 'w-2.5 h-2.5 rounded-full ' + color;
+        }
+        function showErr(msg) { errEl.textContent = msg; errEl.classList.remove('hidden-stage'); playErrorAnim('join-form'); }
+
+        if (!isConfigured) {
+            // 尚未設定 Firebase：維持原本的單機遊玩
+            console.info('[數字大挑戰] 尚未設定 Firebase，以離線練習模式執行。');
+        } else {
+            const V = '10.12.2';
+            const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
+            const { getAuth, signInAnonymously } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-auth.js`);
+            const { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
+
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            let ref = null, ended = false, label = '', seatNo = 0, unsubSelf = null;
+
+            function mergeRec(saved) {
+                for (const k of Object.keys(REC)) {
+                    if (saved[k] === undefined) continue;
+                    if (typeof REC[k] === 'object' && REC[k] !== null && !Array.isArray(REC[k])) {
+                        Object.assign(REC[k], saved[k]);
+                    } else REC[k] = saved[k];
+                }
+            }
+
+            function payload() {
+                return { ...JSON.parse(JSON.stringify(REC)), uid: auth.currentUser.uid, seat: seatNo, lastActive: serverTimestamp() };
+            }
+
+            async function push() {
+                if (!ref || ended) return;
+                setChip(`${label}・${seatNo} 號・同步中`, 'bg-amber-400');
+                try {
+                    await setDoc(ref, payload(), { merge: true });
+                    setChip(`${label}・${seatNo} 號・已連線`, 'bg-green-500');
+                } catch (e) {
+                    if (e.code === 'permission-denied') {
+                        ended = true;
+                        setChip(`${label}・課堂已結束，不再記錄`, 'bg-slate-400');
+                    } else {
+                        setChip(`${label}・${seatNo} 號・連線中斷，稍後重試`, 'bg-rose-500');
+                        setTimeout(push, 5000);
+                    }
+                }
+            }
+
+            async function join(code, seat) {
+                if (!auth.currentUser) await signInAnonymously(auth);
+                const sSnap = await getDoc(doc(db, 'sessions', code));
+                if (!sSnap.exists()) throw new Error('找不到這個課堂代碼，請再確認一次。');
+                if (!sSnap.data().active) throw new Error('這堂課已經結束了。');
+                label = sSnap.data().label || code;
+                const size = sSnap.data().size || 99;
+                if (seat > size) throw new Error(`座號超出範圍（本班 1～${size} 號）。`);
+
+                const r = doc(db, 'sessions', code, 'students', String(seat));
+                let snap;
+                try { snap = await getDoc(r); }
+                catch (e) {
+                    if (e.code === 'permission-denied') throw new Error(`${seat} 號已經有人登入了，請確認座號，或請老師在 dashboard 重設。`);
+                    throw e;
+                }
+                ref = r; seatNo = seat;
+                if (snap.exists()) {
+                    mergeRec(snap.data());          // 重新整理頁面後接續先前的紀錄
+                    await setDoc(ref, payload(), { merge: true });
+                } else {
+                    await setDoc(ref, { ...payload(), joinedAt: serverTimestamp() });
+                }
+                try { sessionStorage.setItem('pfc-join', JSON.stringify({ code, seat })); } catch (e) {}
+                setChip(`${label}・${seatNo} 號・已連線`, 'bg-green-500');
+                window.__tracker = { push };
+                ended = false;
+                // 老師重設座號或結束課堂時（紀錄被刪除），請學生重新加入
+                let seen = false;
+                if (unsubSelf) unsubSelf();
+                unsubSelf = onSnapshot(ref, (snap) => {
+                    if (snap.exists()) { seen = true; return; }
+                    if (!seen) return;
+                    unsubSelf(); unsubSelf = null;
+                    ref = null; window.__tracker = null;
+                    try { sessionStorage.removeItem('pfc-join'); } catch (e) {}
+                    setChip('未加入課堂', 'bg-slate-400');
+                    overlay.classList.remove('hidden-stage');
+                    showErr('你的座號紀錄已被老師重設，或這堂課已結束。請重新加入，或選擇直接練習。');
+                }, () => {});
+            }
+
+            async function tryJoin(code, seat, silent) {
+                btn.disabled = true; btn.textContent = '連線中…';
+                errEl.classList.add('hidden-stage');
+                try {
+                    await join(code, seat);
+                    overlay.classList.add('hidden-stage');
+                } catch (e) {
+                    ref = null;
+                    try { sessionStorage.removeItem('pfc-join'); } catch (_) {}
+                    overlay.classList.remove('hidden-stage');
+                    if (!silent || e.message) showErr(e.code ? '網路連線失敗，請稍後再試。' : e.message);
+                } finally {
+                    btn.disabled = false; btn.textContent = '進入挑戰 🚀';
+                }
+            }
+
+            document.getElementById('join-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const code = document.getElementById('join-code').value.trim();
+                const seat = parseInt(document.getElementById('join-seat').value.trim());
+                if (!/^\d{4}$/.test(code)) { showErr('課堂代碼是 4 位數字。'); return; }
+                if (!(seat >= 1 && seat <= 99)) { showErr('請輸入正確的座號。'); return; }
+                tryJoin(code, seat, false);
+            });
+            document.getElementById('join-skip').addEventListener('click', () => {
+                overlay.classList.add('hidden-stage');
+                setChip('練習模式・不記錄', 'bg-slate-400');
+            });
+            // 只允許數字
+            ['join-code', 'join-seat'].forEach(id => {
+                document.getElementById(id).addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, ''); });
+            });
+            window.addEventListener('pagehide', () => { if (window.__tracker) push(); });
+
+            // 掃描老師投影的 QR Code 進來時，自動帶入課堂代碼
+            const qpCode = new URLSearchParams(location.search).get('code');
+            if (qpCode && /^\d{4}$/.test(qpCode)) document.getElementById('join-code').value = qpCode;
+
+            // 重新整理頁面時自動回到原本的課堂與座號
+            let saved = null;
+            try { saved = JSON.parse(sessionStorage.getItem('pfc-join') || 'null'); } catch (e) {}
+            if (saved) tryJoin(saved.code, saved.seat, true);
+            else overlay.classList.remove('hidden-stage');
         }
     </script>
 </body>

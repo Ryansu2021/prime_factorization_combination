@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數字大挑戰・教師 dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Rubik:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --surface: #ffffff;
+            --page: #fdf2f8;
+            --ink: #0f172a;
+            --ink-2: #475569;
+            --ink-3: #94a3b8;
+            --line: #e2e8f0;
+            --series: #2a78d6;
+            --series-soft: #cde2fb;
+            --good: #0ca30c;
+            --warning: #fab219;
+            --critical: #d03b3b;
+        }
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--page);
+            background-image: linear-gradient(#fbcfe8 2px, transparent 2px), linear-gradient(90deg, #fbcfe8 2px, transparent 2px);
+            background-size: 30px 30px;
+            color: #1e293b;
+        }
+        .num-font { font-family: 'Rubik', sans-serif; }
+        .hidden-v { display: none !important; }
+        .card { background: var(--surface); border: 3px solid var(--ink); border-radius: 12px; box-shadow: 4px 4px 0 var(--ink); }
+        .btn { border: 3px solid var(--ink); border-radius: 8px; box-shadow: 3px 3px 0 var(--ink); font-weight: 900; transition: transform .1s, box-shadow .1s; }
+        .btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .tab { border-bottom: 4px solid transparent; }
+        .tab.active { border-color: #db2777; color: #db2777; }
+
+        /* 座號卡片 */
+        .seat { border: 2px solid var(--line); border-radius: 10px; background: #fff; cursor: pointer; transition: transform .1s; min-height: 78px; }
+        .seat:hover { transform: translateY(-2px); border-color: var(--ink-2); }
+        .seat.absent { background: #f8fafc; border-style: dashed; color: var(--ink-3); cursor: default; }
+        .seat.absent:hover { transform: none; border-color: var(--line); }
+        .seat.stuck { border: 3px solid var(--critical); background: #fef2f2; animation: stuckPulse 1.6s ease-in-out infinite; }
+        .seat.idle { background: #f1f5f9; }
+        .seat.alldone { border-color: var(--good); background: #f0fdf4; }
+        @keyframes stuckPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(208,59,59,.35); } 50% { box-shadow: 0 0 0 6px rgba(208,59,59,0); } }
+        .pip { flex: 1; height: 8px; border-radius: 4px; background: var(--line); }
+        .pip.cur { background: var(--series); }
+        .pip.done { background: var(--good); }
+
+        /* 長條 */
+        .bar-track { background: #f1f5f9; border-radius: 4px; height: 18px; position: relative; overflow: hidden; }
+        .bar-fill { background: var(--series); height: 100%; border-radius: 0 4px 4px 0; min-width: 2px; transition: width .4s; }
+
+        #tip { position: fixed; pointer-events: none; z-index: 200; background: var(--ink); color: #fff; font-size: 12px; font-weight: 700; padding: 6px 9px; border-radius: 6px; max-width: 260px; line-height: 1.4; }
+
+        @media print {
+            body { background: #fff !important; }
+            .no-print { display: none !important; }
+            .card { box-shadow: none; border-width: 1px; }
+            #view-monitor { display: none !important; }
+            #view-summary { display: block !important; }
+            .print-only { display: block !important; }
+        }
+        .print-only { display: none; }
+    </style>
+</head>
+<body class="min-h-screen">
+
+<header class="bg-white border-b-4 border-slate-900 no-print">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <h1 class="text-xl sm:text-2xl font-black text-slate-900">🎮 數字大挑戰・教師 dashboard</h1>
+            <span class="text-xs text-slate-500 font-bold">即時監控全班作答，下課前看本堂成效</span>
+        </div>
+        <div id="account-box" class="hidden-v flex items-center gap-2 text-sm font-bold">
+            <span id="account-email" class="text-slate-500"></span>
+            <button id="btn-signout" class="btn bg-white px-3 py-1 text-sm">登出</button>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-7xl mx-auto p-4">
+
+    <!-- 尚未設定 -->
+    <section id="view-unconfigured" class="card p-6 max-w-xl mx-auto mt-10 text-center">
+        <div class="text-4xl mb-2">🛠️</div>
+        <h2 class="text-xl font-black mb-2">尚未完成 Firebase 設定</h2>
+        <p class="text-slate-600 font-bold text-sm leading-relaxed">請依照「設定說明.md」建立 Firebase 專案，並把設定貼到 <code class="bg-slate-100 px-1 rounded">firebase-config.js</code>。<br>注意：教師 dashboard 必須用 GitHub Pages 的網址開啟，直接雙擊本機檔案無法登入。</p>
+    </section>
+
+    <!-- 登入 -->
+    <section id="view-login" class="hidden-v card p-8 max-w-md mx-auto mt-10 text-center">
+        <div class="text-4xl mb-2">👩‍🏫</div>
+        <h2 class="text-xl font-black mb-1">教師登入</h2>
+        <p class="text-slate-500 font-bold text-sm mb-5">請用已設定為教師的 Google 帳號登入</p>
+        <button id="btn-signin" class="btn bg-pink-500 text-white px-6 py-3 text-lg">使用 Google 帳號登入</button>
+        <p id="login-error" class="hidden-v mt-4 text-sm font-black text-rose-600"></p>
+    </section>
+
+    <!-- 課堂清單 -->
+    <section id="view-sessions" class="hidden-v grid md:grid-cols-2 gap-5 mt-4">
+        <div class="card p-5">
+            <h2 class="text-lg font-black mb-3">➕ 開始新的課堂</h2>
+            <form id="form-new" class="flex flex-col gap-3">
+                <label class="flex flex-col gap-1 font-bold text-sm">班級名稱
+                    <input id="new-label" class="border-2 border-slate-900 rounded-lg px-3 py-2 text-lg font-black" placeholder="例如 701" maxlength="12" required>
+                </label>
+                <label class="flex flex-col gap-1 font-bold text-sm">班級人數
+                    <input id="new-size" type="number" min="1" max="99" value="30" class="border-2 border-slate-900 rounded-lg px-3 py-2 text-lg font-black num-font" required>
+                </label>
+                <button class="btn bg-pink-500 text-white py-3 text-lg">產生課堂代碼</button>
+            </form>
+        </div>
+        <div class="card p-5">
+            <h2 class="text-lg font-black mb-3">📋 進行中的課堂</h2>
+            <div id="session-list" class="flex flex-col gap-2 text-sm font-bold text-slate-500">載入中…</div>
+        </div>
+    </section>
+
+    <!-- 課堂進行中 -->
+    <section id="view-session" class="hidden-v">
+        <div class="card p-4 flex flex-wrap items-center gap-4 justify-between no-print">
+            <div class="flex items-center gap-4">
+                <button id="btn-back" class="btn bg-white px-3 py-1 text-sm">← 課堂清單</button>
+                <div>
+                    <div class="text-xs font-black text-slate-500">班級</div>
+                    <div id="s-label" class="text-2xl font-black"></div>
+                </div>
+                <button id="btn-show-code" class="text-left rounded-lg px-3 py-1 bg-yellow-100 border-2 border-yellow-500 hover:bg-yellow-200" title="點擊放大給學生看">
+                    <div class="text-xs font-black text-yellow-700">課堂代碼（點擊放大）</div>
+                    <div id="s-code" class="text-3xl font-black num-font tracking-widest"></div>
+                </button>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button id="btn-csv" class="btn bg-white px-3 py-2 text-sm">⬇️ 匯出 CSV</button>
+                <button id="btn-csv-mis" class="btn bg-white px-3 py-2 text-sm">⬇️ 迷思統計 CSV</button>
+                <button id="btn-print" class="btn bg-white px-3 py-2 text-sm">🖨️ 列印／存成 PDF</button>
+                <button id="btn-end" class="btn bg-rose-500 text-white px-3 py-2 text-sm">結束課堂並清除資料</button>
+            </div>
+        </div>
+
+        <div class="print-only mb-4">
+            <h1 class="text-2xl font-black">數字大挑戰・本堂成效摘要</h1>
+            <p id="print-meta" class="text-sm text-slate-600"></p>
+        </div>
+
+        <div class="flex gap-6 mt-4 mb-3 border-b-2 border-slate-300 font-black text-lg no-print">
+            <button class="tab active pb-2" data-tab="monitor">📡 即時監控</button>
+            <button class="tab pb-2" data-tab="summary">📊 本堂成效摘要</button>
+        </div>
+
+        <!-- 即時監控 -->
+        <div id="view-monitor">
+            <div id="kpis" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4"></div>
+            <div class="grid lg:grid-cols-3 gap-4">
+                <div class="card p-4 lg:col-span-2">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <h2 class="font-black text-lg">全班進度</h2>
+                        <div class="flex flex-wrap gap-3 text-xs font-bold text-slate-600">
+                            <span class="flex items-center gap-1"><span class="inline-block w-5 h-2 rounded bg-[var(--good)]"></span>已完成的關卡</span>
+                            <span class="flex items-center gap-1"><span class="inline-block w-5 h-2 rounded bg-[var(--series)]"></span>目前所在</span>
+                            <span>⚠️ 連續答錯 3 次</span>
+                            <span>💤 超過 2 分鐘沒動作</span>
+                        </div>
+                    </div>
+                    <div id="seat-grid" class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 xl:grid-cols-8 gap-2"></div>
+                    <p class="text-xs text-slate-400 font-bold mt-3">點選座號可以看該生的詳細紀錄。每格四條小色條依序代表第 1～4 關。</p>
+                </div>
+                <div class="flex flex-col gap-4">
+                    <div class="card p-4">
+                        <h2 class="font-black text-lg">🧠 被誤認為質數的數</h2>
+                        <p class="text-xs font-bold text-slate-500 mb-3">人數＝有幾位學生把它當成質數（含三關合計）</p>
+                        <div id="mis-list"></div>
+                    </div>
+                    <div class="card p-4">
+                        <h2 class="font-black text-lg mb-3">🔍 錯誤類型</h2>
+                        <div id="err-types"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 本堂成效摘要 -->
+        <div id="view-summary" class="hidden-v">
+            <div class="grid lg:grid-cols-2 gap-4">
+                <div class="card p-4">
+                    <h2 class="font-black text-lg mb-1">各關完成率</h2>
+                    <p id="sum-joined" class="text-xs font-bold text-slate-500 mb-3"></p>
+                    <div id="sum-stages"></div>
+                </div>
+                <div class="card p-4">
+                    <h2 class="font-black text-lg mb-1">第四關各主題答對率</h2>
+                    <p class="text-xs font-bold text-slate-500 mb-3">只計單人挑戰模式；雙人對戰共用裝置，不計入個人</p>
+                    <div id="sum-topics"></div>
+                </div>
+                <div class="card p-4 lg:col-span-2">
+                    <h2 class="font-black text-lg mb-1">🩹 需要補救的學生</h2>
+                    <p class="text-xs font-bold text-slate-500 mb-3" id="remedial-note"></p>
+                    <div id="sum-remedial" class="overflow-x-auto"></div>
+                </div>
+                <div class="card p-4 lg:col-span-2">
+                    <h2 class="font-black text-lg mb-3">🧠 本堂常見迷思</h2>
+                    <div id="sum-mis"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- 放大的課堂代碼 -->
+<div id="code-modal" class="hidden-v fixed inset-0 z-[150] bg-white flex flex-col items-center justify-center gap-6 p-6 no-print">
+    <div class="text-3xl font-black text-slate-600">打開網頁，輸入課堂代碼和座號</div>
+    <div id="code-modal-url" class="text-xl font-bold text-slate-500 break-all text-center"></div>
+    <div class="flex flex-wrap items-center justify-center gap-12">
+        <div id="code-modal-code" class="num-font font-black text-[22vmin] leading-none tracking-widest text-pink-600"></div>
+        <div id="code-modal-qr" class="p-3 border-4 border-slate-900 rounded-xl bg-white"></div>
+    </div>
+    <button id="btn-close-code" class="btn bg-white px-6 py-2 text-lg">關閉</button>
+</div>
+
+<!-- 學生詳細資料 -->
+<div id="detail-modal" class="hidden-v fixed inset-0 z-[140] bg-slate-900/40 flex items-center justify-center p-4 no-print">
+    <div class="card w-full max-w-lg max-h-[90vh] overflow-y-auto p-5">
+        <div class="flex justify-between items-start mb-3">
+            <h2 id="detail-title" class="text-2xl font-black"></h2>
+            <button id="btn-close-detail" class="btn bg-white px-3 py-1 text-sm">關閉</button>
+        </div>
+        <div id="detail-body" class="text-sm"></div>
+        <div class="mt-5 pt-4 border-t-2 border-slate-200">
+            <button id="btn-reset-seat" class="btn bg-white text-rose-600 px-3 py-1 text-sm">重設此座號</button>
+            <p class="text-xs text-slate-500 font-bold mt-2">學生換裝置或座號輸入錯誤被占用時使用。會刪除此座號目前的紀錄。</p>
+        </div>
+    </div>
+</div>
+
+<div id="tip" class="hidden-v"></div>
+
+<script type="module">
+import { firebaseConfig, TEACHER_EMAILS, isConfigured } from './firebase-config.js';
+
+const $ = (id) => document.getElementById(id);
+const show = (id, on = true) => $(id).classList.toggle('hidden-v', !on);
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+const numList = (a) => Array.isArray(a) ? a.map(Number).filter(n => Number.isFinite(n) && n > 0) : [];
+
+// ===== 提示框（滑鼠移到 data-tip 上顯示） =====
+const tip = $('tip');
+document.addEventListener('mouseover', (e) => {
+    const t = e.target.closest('[data-tip]');
+    if (!t) { tip.classList.add('hidden-v'); return; }
+    tip.innerHTML = t.dataset.tip; tip.classList.remove('hidden-v');
+});
+document.addEventListener('mousemove', (e) => {
+    if (tip.classList.contains('hidden-v')) return;
+    const x = Math.min(e.clientX + 14, window.innerWidth - tip.offsetWidth - 8);
+    tip.style.left = x + 'px'; tip.style.top = (e.clientY + 16) + 'px';
+});
+
+if (!isConfigured) {
+    show('view-unconfigured');
+} else {
+    show('view-unconfigured', false);
+    const V = '10.12.2';
+    const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
+    const { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-auth.js`);
+    const { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, query, orderBy, limit, getDocs,
+            onSnapshot, serverTimestamp, writeBatch } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let session = null;          // { code, label, size }
+    let students = [];           // 目前課堂的學生資料
+    let unsubStudents = null, unsubSession = null;
+    let detailSeat = null;
+
+    // ===== 登入 =====
+    $('btn-signin').onclick = async () => {
+        show('login-error', false);
+        try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+        catch (e) { $('login-error').textContent = '登入失敗：' + (e.code || e.message); show('login-error'); }
+    };
+    $('btn-signout').onclick = () => { leaveSession(); signOut(auth); };
+
+    onAuthStateChanged(auth, (user) => {
+        ['view-login', 'view-sessions', 'view-session'].forEach(v => show(v, false));
+        if (!user) { show('account-box', false); show('view-login'); return; }
+        if (!TEACHER_EMAILS.map(e => e.toLowerCase()).includes((user.email || '').toLowerCase())) {
+            signOut(auth);
+            $('login-error').textContent = `${user.email} 沒有教師權限。請確認 firebase-config.js 與安全規則中的教師帳號。`;
+            show('login-error'); show('view-login'); return;
+        }
+        $('account-email').textContent = user.email;
+        show('account-box');
+        let last = null;
+        try { last = localStorage.getItem('pfc-teacher-session'); } catch (e) {}
+        if (last) openSession(last); else showSessions();
+    });
+
+    // ===== 課堂清單 =====
+    async function showSessions() {
+        leaveSession();
+        show('view-session', false); show('view-sessions');
+        const box = $('session-list');
+        box.textContent = '載入中…';
+        try {
+            const snap = await getDocs(query(collection(db, 'sessions'), orderBy('createdAt', 'desc'), limit(30)));
+            const rows = snap.docs.map(d => d.data()).filter(s => s.active);
+            if (!rows.length) { box.innerHTML = '<p>目前沒有進行中的課堂。</p>'; return; }
+            box.innerHTML = rows.map(s => `
+                <button data-code="${esc(s.code)}" class="open-session flex justify-between items-center border-2 border-slate-300 hover:border-slate-900 rounded-lg px-3 py-2 text-left">
+                    <span class="text-slate-900 font-black text-base">${esc(s.label)}</span>
+                    <span class="num-font text-pink-600 font-black text-lg tracking-widest">${esc(s.code)}</span>
+                </button>`).join('');
+            box.querySelectorAll('.open-session').forEach(b => b.onclick = () => openSession(b.dataset.code));
+        } catch (e) { box.textContent = '讀取失敗：' + (e.code || e.message); }
+    }
+
+    $('form-new').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const label = $('new-label').value.trim();
+        const size = Math.max(1, Math.min(99, parseInt($('new-size').value) || 30));
+        let code = null;
+        for (let i = 0; i < 20 && !code; i++) {
+            const c = String(1000 + Math.floor(Math.random() * 9000));
+            const s = await getDoc(doc(db, 'sessions', c));
+            if (!s.exists()) code = c;
+        }
+        if (!code) { alert('產生代碼失敗，請再試一次。'); return; }
+        await setDoc(doc(db, 'sessions', code), { code, label, size, active: true, createdAt: serverTimestamp(), owner: auth.currentUser.uid });
+        $('new-label').value = '';
+        openSession(code);
+    });
+
+    // ===== 進入課堂 =====
+    function leaveSession() {
+        if (unsubStudents) unsubStudents(); if (unsubSession) unsubSession();
+        unsubStudents = unsubSession = null; session = null; students = [];
+    }
+
+    async function openSession(code) {
+        leaveSession();
+        const s = await getDoc(doc(db, 'sessions', code)).catch(() => null);
+        if (!s || !s.exists() || !s.data().active) {
+            try { localStorage.removeItem('pfc-teacher-session'); } catch (e) {}
+            showSessions(); return;
+        }
+        session = { code, label: s.data().label, size: num(s.data().size) || 30 };
+        try { localStorage.setItem('pfc-teacher-session', code); } catch (e) {}
+        show('view-sessions', false); show('view-session');
+        $('s-label').textContent = session.label;
+        $('s-code').textContent = code;
+        unsubSession = onSnapshot(doc(db, 'sessions', code), (d) => { if (!d.exists()) showSessions(); });
+        unsubStudents = onSnapshot(collection(db, 'sessions', code, 'students'), (snap) => {
+            students = snap.docs.map(d => normalize(d.data({ serverTimestamps: 'estimate' })));
+            render();
+        });
+        render();
+    }
+    $('btn-back').onclick = () => { try { localStorage.removeItem('pfc-teacher-session'); } catch (e) {} showSessions(); };
+
+    // 學生端資料可能被竄改，全部轉成安全的數值或字串
+    function normalize(d) {
+        const l1 = d.l1 || {}, l2 = d.l2 || {}, l3 = d.l3 || {}, l4 = d.l4 || {}, bt = l4.byTopic || {};
+        const topic = (k) => ({ c: num(bt[k]?.c), t: num(bt[k]?.t) });
+        return {
+            seat: num(d.seat), stage: num(d.stage) || 1, maxStage: num(d.maxStage) || 1,
+            errStreak: num(d.errStreak), errWhere: String(d.errWhere || ''),
+            lastActive: d.lastActive?.toMillis ? d.lastActive.toMillis() : null,
+            l1: { cells: num(l1.cells), maxCells: num(l1.maxCells), passed: !!l1.passed, wrongNums: numList(l1.wrongNums),
+                  notPrime: num(l1.notPrime), link: num(l1.link), dup: num(l1.dup), hints: num(l1.hints), undos: num(l1.undos) },
+            l2: { mode: String(l2.mode || ''), done: num(l2.done), lastNum: l2.lastNum, compositeAsPrime: num(l2.compositeAsPrime),
+                  wrongPrimes: numList(l2.wrongPrimes), notDivisor: num(l2.notDivisor), quotient: num(l2.quotient) },
+            l3: { passed: !!l3.passed, fails: num(l3.fails), errEmpty: num(l3.errEmpty), errCount: num(l3.errCount),
+                  errOrder: num(l3.errOrder), errValue: num(l3.errValue) },
+            l4: { rounds: num(l4.rounds), multiRounds: num(l4.multiRounds), finished: !!l4.finished,
+                  lastScore: l4.lastScore == null ? null : num(l4.lastScore), lastCount: l4.lastCount == null ? null : num(l4.lastCount),
+                  answered: num(l4.answered), correct: num(l4.correct), primeMisses: numList(l4.primeMisses),
+                  byTopic: { prime: topic('prime'), factor: topic('factor'), standard: topic('standard') } }
+        };
+    }
+
+    // ===== 判斷規則 =====
+    const STAGE_NAMES = ['質數接龍', '質因數分解', '標準分解式', '動態測驗'];
+    const TOPIC_NAMES = { prime: '質數判別', factor: '質因數尋找', standard: '標準分解式' };
+    const IDLE_MS = 120000;
+    const stageDone = (s) => [s.l1.passed, s.l2.done > 0, s.l3.passed, s.l4.finished];
+    const isStuck = (s) => s.errStreak >= 3 && !stageDone(s).every(Boolean);
+    const isIdle = (s) => s.lastActive && Date.now() - s.lastActive > IDLE_MS && !stageDone(s).every(Boolean);
+    const rate = (c, t) => t ? Math.round(c / t * 100) : null;
+
+    function remedial(s) {
+        const out = [];
+        const add = (topic, why) => { const f = out.find(o => o.topic === topic); f ? f.why.push(why) : out.push({ topic, why: [why] }); };
+        const bt = s.l4.byTopic;
+        if (!s.l1.passed) add('質數判別', `第一關未過關（最多 ${s.l1.maxCells} 格）`);
+        if (s.l1.wrongNums.length >= 2) add('質數判別', `把 ${s.l1.wrongNums.join('、')} 當成質數`);
+        if (bt.prime.t >= 2 && rate(bt.prime.c, bt.prime.t) < 60) add('質數判別', `測驗質數判別答對 ${bt.prime.c}/${bt.prime.t}`);
+        if (s.maxStage >= 2 && s.l2.done === 0) add('質因數分解', '第二關尚未完成任何一題');
+        if (s.l2.compositeAsPrime >= 2) add('質因數分解', `把合數當質因數 ${s.l2.compositeAsPrime} 次（${s.l2.wrongPrimes.join('、')}）`);
+        if (s.l2.quotient >= 3) add('質因數分解', `商數算錯 ${s.l2.quotient} 次`);
+        if (bt.factor.t >= 2 && rate(bt.factor.c, bt.factor.t) < 60) add('質因數分解', `測驗質因數答對 ${bt.factor.c}/${bt.factor.t}`);
+        if (s.maxStage >= 3 && !s.l3.passed) add('標準分解式', '第三關尚未完成');
+        if (s.l3.errValue + s.l3.errCount >= 3) add('標準分解式', `底數或次方寫錯 ${s.l3.errValue + s.l3.errCount} 次`);
+        if (s.l3.errOrder >= 2) add('標準分解式', `底數沒有由小到大排 ${s.l3.errOrder} 次`);
+        if (bt.standard.t >= 2 && rate(bt.standard.c, bt.standard.t) < 60) add('標準分解式', `測驗標準分解式答對 ${bt.standard.c}/${bt.standard.t}`);
+        return out;
+    }
+    const REMEDIAL_NOTE = '判斷標準：第一關未達 8 格，或有 2 個以上數字被誤認為質數；第二關把合數當質因數 2 次以上、商數算錯 3 次以上；第三關底數或次方錯 3 次以上、排序錯 2 次以上；第四關某主題作答 2 題以上且答對率低於 60%。進到該關但未完成也列入。';
+
+    function misconceptions() {
+        const map = new Map();
+        students.forEach(s => {
+            const sources = [[s.l1.wrongNums, '第一關'], [s.l2.wrongPrimes, '第二關'], [s.l4.primeMisses, '第四關']];
+            const seen = new Map();
+            sources.forEach(([list, where]) => list.forEach(n => { if (!seen.has(n)) seen.set(n, new Set()); seen.get(n).add(where); }));
+            seen.forEach((wheres, n) => {
+                if (!map.has(n)) map.set(n, { n, seats: [], where: new Set() });
+                const m = map.get(n); m.seats.push(s.seat); wheres.forEach(w => m.where.add(w));
+            });
+        });
+        return [...map.values()].sort((a, b) => b.seats.length - a.seats.length || a.n - b.n);
+    }
+
+    // ===== 繪圖 =====
+    function barRow(label, value, max, valueText, tipHtml) {
+        const pct = max ? Math.max(0, Math.min(100, value / max * 100)) : 0;
+        return `<div class="flex items-center gap-3 mb-2" data-tip="${esc(tipHtml)}">
+            <div class="w-28 shrink-0 text-sm font-black text-slate-700 truncate">${label}</div>
+            <div class="flex-1 bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+            <div class="w-20 shrink-0 text-right text-sm font-black text-slate-700 num-font">${valueText}</div>
+        </div>`;
+    }
+
+    function render() {
+        if (!session) return;
+        const bySeat = new Map(students.map(s => [s.seat, s]));
+        const joined = students.length;
+        const done = [0, 1, 2, 3].map(i => students.filter(s => stageDone(s)[i]).length);
+        const stuck = students.filter(isStuck).length;
+
+        // KPI
+        const kpi = (title, val, sub, cls = '') => `<div class="card p-3 ${cls}"><div class="text-xs font-black text-slate-500">${title}</div>
+            <div class="text-3xl font-black num-font">${val}</div><div class="text-xs font-bold text-slate-400">${sub}</div></div>`;
+        $('kpis').innerHTML =
+            kpi('已加入', joined, `／ ${session.size} 人`) +
+            STAGE_NAMES.map((n, i) => kpi(`第${i + 1}關完成`, done[i], `${n}・${joined ? Math.round(done[i] / joined * 100) : 0}%`)).join('') +
+            kpi('⚠️ 需要協助', stuck, '連續答錯 3 次', stuck ? 'bg-rose-50' : '');
+
+        // 座號格
+        let html = '';
+        for (let seat = 1; seat <= Math.max(session.size, ...students.map(s => s.seat)); seat++) {
+            const s = bySeat.get(seat);
+            if (!s) { html += `<div class="seat absent p-2" data-slot="${seat}"><div class="text-xl font-black num-font">${seat}</div><div class="text-xs font-bold">未加入</div></div>`; continue; }
+            const d = stageDone(s);
+            const all = d.every(Boolean), st = isStuck(s), idle = !st && isIdle(s);
+            const pips = d.map((ok, i) => `<span class="pip ${ok ? 'done' : (s.stage === i + 1 ? 'cur' : '')}"></span>`).join('');
+            let status = `第 ${s.stage} 關`;
+            if (all) status = '✅ 全部完成';
+            else if (st) status = `⚠️ 卡在第 ${s.errWhere.replace('l', '') || s.stage} 關`;
+            else if (idle) status = `💤 第 ${s.stage} 關・閒置`;
+            html += `<div data-slot="${seat}" class="seat p-2 ${st ? 'stuck' : idle ? 'idle' : all ? 'alldone' : ''}" data-seat="${seat}">
+                <div class="flex justify-between items-baseline"><span class="text-xl font-black num-font">${seat}</span></div>
+                <div class="flex gap-1 my-1.5">${pips}</div>
+                <div class="text-xs font-black ${st ? 'text-[var(--critical)]' : 'text-slate-600'}">${status}</div></div>`;
+        }
+        $('seat-grid').innerHTML = html;
+        $('seat-grid').querySelectorAll('[data-seat]').forEach(el => el.onclick = () => openDetail(Number(el.dataset.seat)));
+
+        // 迷思排行
+        const mis = misconceptions();
+        const misMax = Math.max(1, ...mis.map(m => m.seats.length));
+        const misHtml = (list) => list.length ? list.map(m => barRow(`<span class="num-font text-lg">${m.n}</span>`, m.seats.length, misMax, `${m.seats.length} 人`,
+            `${m.n} 被 ${m.seats.length} 人當成質數<br>座號：${m.seats.sort((a, b) => a - b).join('、')}<br>出現在：${[...m.where].join('、')}`)).join('')
+            : '<p class="text-sm font-bold text-slate-400">目前還沒有學生把合數當成質數。</p>';
+        $('mis-list').innerHTML = misHtml(mis.slice(0, 8));
+
+        // 錯誤類型
+        const sum = (f) => students.reduce((a, s) => a + f(s), 0);
+        const errs = [
+            ['第一關', '輸入非質數', sum(s => s.l1.notPrime)], ['第一關', '首尾沒接上', sum(s => s.l1.link)],
+            ['第二關', '合數當質因數', sum(s => s.l2.compositeAsPrime)], ['第二關', '不能整除', sum(s => s.l2.notDivisor)], ['第二關', '商數算錯', sum(s => s.l2.quotient)],
+            ['第三關', '項數錯（底數或合併）', sum(s => s.l3.errCount)], ['第三關', '沒有由小到大', sum(s => s.l3.errOrder)], ['第三關', '底數或次方錯', sum(s => s.l3.errValue)]
+        ];
+        const errMax = Math.max(1, ...errs.map(e => e[2]));
+        $('err-types').innerHTML = ['第一關', '第二關', '第三關'].map(g => `<div class="text-xs font-black text-slate-500 mt-2 mb-1">${g}</div>` +
+            errs.filter(e => e[0] === g).map(e => barRow(e[1], e[2], errMax, `${e[2]} 次`, `${g}「${e[1]}」全班共 ${e[2]} 次`)).join('')).join('');
+
+        // ===== 摘要 =====
+        $('sum-joined').textContent = `分母為已加入的 ${joined} 人（班級共 ${session.size} 人）`;
+        $('sum-stages').innerHTML = STAGE_NAMES.map((n, i) => barRow(`${i + 1}. ${n}`, done[i], joined, `${joined ? Math.round(done[i] / joined * 100) : 0}%`,
+            `第 ${i + 1} 關 ${n}：${done[i]} / ${joined} 人完成`)).join('');
+        $('sum-topics').innerHTML = Object.entries(TOPIC_NAMES).map(([k, n]) => {
+            const c = sum(s => s.l4.byTopic[k].c), t = sum(s => s.l4.byTopic[k].t), r = rate(c, t);
+            return barRow(n, r ?? 0, 100, r == null ? '尚無資料' : `${r}%`, `${n}：全班共作答 ${t} 題，答對 ${c} 題`);
+        }).join('');
+        $('remedial-note').textContent = REMEDIAL_NOTE;
+        const rem = students.map(s => ({ s, r: remedial(s) })).filter(x => x.r.length).sort((a, b) => a.s.seat - b.s.seat);
+        $('sum-remedial').innerHTML = rem.length ? `<table class="w-full text-sm">
+            <thead><tr class="text-left border-b-2 border-slate-900"><th class="py-1 pr-3 w-14">座號</th><th class="py-1 pr-3 w-44">需補救</th><th class="py-1">依據</th></tr></thead>
+            <tbody>${rem.map(x => `<tr class="border-b border-slate-200 align-top">
+                <td class="py-1.5 pr-3 font-black num-font text-lg">${x.s.seat}</td>
+                <td class="py-1.5 pr-3 font-black">${x.r.map(o => esc(o.topic)).join('<br>')}</td>
+                <td class="py-1.5 text-slate-600 font-bold">${x.r.map(o => esc(o.why.join('；'))).join('<br>')}</td></tr>`).join('')}</tbody></table>`
+            : `<p class="text-sm font-bold text-slate-400">${joined ? '目前沒有學生符合補救條件。' : '還沒有學生加入。'}</p>`;
+        $('sum-mis').innerHTML = misHtml(mis.slice(0, 12));
+        $('print-meta').textContent = `班級：${session.label}　課堂代碼：${session.code}　加入人數：${joined}／${session.size}　列印時間：${new Date().toLocaleString('zh-TW')}`;
+
+        if (detailSeat != null) renderDetail();
+    }
+    setInterval(render, 10000);   // 讓「閒置」狀態隨時間更新
+
+    // ===== 分頁 =====
+    document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+        document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t));
+        show('view-monitor', t.dataset.tab === 'monitor');
+        show('view-summary', t.dataset.tab === 'summary');
+    });
+
+    // ===== 學生詳細資料 =====
+    function openDetail(seat) { detailSeat = seat; renderDetail(); show('detail-modal'); }
+    function renderDetail() {
+        const s = students.find(x => x.seat === detailSeat);
+        if (!s) { show('detail-modal', false); detailSeat = null; return; }
+        $('detail-title').textContent = `${s.seat} 號・目前在第 ${s.stage} 關`;
+        const row = (k, v) => `<div class="flex justify-between gap-4 py-1 border-b border-slate-100"><span class="font-bold text-slate-500">${k}</span><span class="font-black text-right">${v}</span></div>`;
+        const sec = (t) => `<div class="mt-3 mb-1 font-black text-pink-600">${t}</div>`;
+        const r = remedial(s);
+        $('detail-body').innerHTML =
+            sec('第一關 質數接龍') + row('最多接到', `${s.l1.maxCells} 格 ${s.l1.passed ? '✅' : ''}`) +
+            row('誤認為質數', esc(s.l1.wrongNums.join('、') || '—')) +
+            row('錯誤（非質數／沒接上／重複）', `${s.l1.notPrime}／${s.l1.link}／${s.l1.dup}`) + row('提示／悔棋', `${s.l1.hints}／${s.l1.undos}`) +
+            sec('第二關 質因數分解') + row('自選模式', esc(s.l2.mode || '—')) + row('完成題數', s.l2.done) +
+            row('錯誤（合數當質因數／不能整除／商算錯）', `${s.l2.compositeAsPrime}／${s.l2.notDivisor}／${s.l2.quotient}`) +
+            row('誤當質因數的數', esc(s.l2.wrongPrimes.join('、') || '—')) +
+            sec('第三關 標準分解式') + row('完成', s.l3.passed ? '✅' : '—') +
+            row('錯誤（項數／排序／底數或次方）', `${s.l3.errCount}／${s.l3.errOrder}／${s.l3.errValue}`) +
+            sec('第四關 動態測驗') + row('單人完成輪數', s.l4.rounds) +
+            Object.entries(TOPIC_NAMES).map(([k, n]) => row(n, s.l4.byTopic[k].t ? `${s.l4.byTopic[k].c}/${s.l4.byTopic[k].t}` : '—')).join('') +
+            row('最後一輪', s.l4.lastScore == null ? '—' : `${s.l4.lastScore} 分（${s.l4.lastCount} 題）`) +
+            (s.l4.multiRounds ? row('雙人對戰（不計分）', `${s.l4.multiRounds} 輪`) : '') +
+            sec('需要補救') + (r.length ? r.map(o => `<div class="py-1"><b>${esc(o.topic)}</b>：${esc(o.why.join('；'))}</div>`).join('') : '<div class="text-slate-400 font-bold">無</div>');
+    }
+    $('btn-close-detail').onclick = () => { show('detail-modal', false); detailSeat = null; };
+    $('btn-reset-seat').onclick = async () => {
+        if (detailSeat == null || !confirm(`確定要重設 ${detailSeat} 號？此座號目前的紀錄會被刪除。`)) return;
+        await deleteDoc(doc(db, 'sessions', session.code, 'students', String(detailSeat)));
+        show('detail-modal', false); detailSeat = null;
+    };
+
+    // ===== 放大課堂代碼 =====
+    const studentUrl = () => new URL('./', location.href).href;
+    $('btn-show-code').onclick = () => {
+        $('code-modal-code').textContent = session.code;
+        $('code-modal-url').textContent = studentUrl();
+        const qr = $('code-modal-qr'); qr.innerHTML = '';
+        if (window.QRCode) new QRCode(qr, { text: `${studentUrl()}?code=${session.code}`, width: 220, height: 220 });
+        else qr.classList.add('hidden-v');
+        show('code-modal');
+    };
+    $('btn-close-code').onclick = () => show('code-modal', false);
+
+    // ===== 匯出 CSV =====
+    const csvCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    function download(name, header, rows) {
+        const csv = '﻿' + [header, ...rows].map(r => r.map(csvCell).join(',')).join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        try { sessionStorage.setItem('pfc-exported-' + session.code, '1'); } catch (e) {}
+    }
+    const today = () => new Date().toLocaleDateString('sv-SE');
+    const topicCell = (t) => t.t ? `${t.c}/${t.t}` : '';
+    const timeStr = (ms) => ms ? new Date(ms).toLocaleTimeString('zh-TW', { hour12: false }) : '';
+
+    $('btn-csv').onclick = () => {
+        const header = ['座號', '目前關卡', '最遠到達', '第一關最多格數', '第一關過關', '誤認為質數的數字', '第一關錯誤(非質數/沒接上/重複)', '第一關提示次數',
+            '第二關模式', '第二關完成題數', '第二關錯誤(合數當質因數/不能整除/商算錯)', '誤當質因數的數',
+            '第三關完成', '第三關錯誤(項數/排序/底數或次方)',
+            '第四關單人輪數', '第四關總答對率', '質數判別', '質因數尋找', '標準分解式', '第四關誤選為質數', '最後一輪分數(題數)',
+            '需補救', '補救依據', '最後活動時間'];
+        const rows = [...students].sort((a, b) => a.seat - b.seat).map(s => {
+            const r = remedial(s);
+            return [s.seat, s.stage, s.maxStage, s.l1.maxCells, s.l1.passed ? '是' : '否', s.l1.wrongNums.join('、'),
+                `${s.l1.notPrime}/${s.l1.link}/${s.l1.dup}`, s.l1.hints,
+                s.l2.mode, s.l2.done, `${s.l2.compositeAsPrime}/${s.l2.notDivisor}/${s.l2.quotient}`, s.l2.wrongPrimes.join('、'),
+                s.l3.passed ? '是' : '否', `${s.l3.errCount}/${s.l3.errOrder}/${s.l3.errValue}`,
+                s.l4.rounds, s.l4.answered ? `${rate(s.l4.correct, s.l4.answered)}%` : '',
+                topicCell(s.l4.byTopic.prime), topicCell(s.l4.byTopic.factor), topicCell(s.l4.byTopic.standard),
+                s.l4.primeMisses.join('、'), s.l4.lastScore == null ? '' : `${s.l4.lastScore}(${s.l4.lastCount}題)`,
+                r.map(o => o.topic).join('、'), r.map(o => `${o.topic}：${o.why.join('；')}`).join(' | '), timeStr(s.lastActive)];
+        });
+        download(`數字大挑戰_${session.label}_${session.code}_${today()}.csv`, header, rows);
+    };
+    $('btn-csv-mis').onclick = () => {
+        const rows = misconceptions().map(m => [m.n, m.seats.length, [...m.where].join('、'), m.seats.sort((a, b) => a - b).join('、')]);
+        download(`數字大挑戰_迷思統計_${session.label}_${session.code}_${today()}.csv`, ['被誤認為質數的數', '人數', '出現在', '座號'], rows);
+    };
+    $('btn-print').onclick = () => window.print();
+
+    // ===== 結束課堂並清除資料 =====
+    $('btn-end').onclick = async () => {
+        let exported = false;
+        try { exported = !!sessionStorage.getItem('pfc-exported-' + session.code); } catch (e) {}
+        const msg = exported
+            ? `確定要結束「${session.label}」並清除雲端上的作答資料嗎？清除後無法復原。`
+            : `⚠️ 本堂資料尚未匯出！\n確定要結束「${session.label}」並清除雲端上的作答資料嗎？清除後無法復原。`;
+        if (!confirm(msg)) return;
+        const code = session.code;
+        $('btn-end').disabled = true;
+        try {
+            await setDoc(doc(db, 'sessions', code), { active: false }, { merge: true });  // 先停止學生寫入
+            const snap = await getDocs(collection(db, 'sessions', code, 'students'));
+            const batch = writeBatch(db);
+            snap.docs.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+            await deleteDoc(doc(db, 'sessions', code));
+            try { localStorage.removeItem('pfc-teacher-session'); sessionStorage.removeItem('pfc-exported-' + code); } catch (e) {}
+            showSessions();
+        } catch (e) { alert('清除失敗：' + (e.code || e.message)); }
+        finally { $('btn-end').disabled = false; }
+    };
+}
+</script>
+</body>
+</html>
