@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>數字大挑戰</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Rubik:wght@500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Noto+Serif+TC:wght@700;900&family=Rubik:wght@500;700;900&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Noto Sans TC', sans-serif;
@@ -142,7 +142,9 @@
 <body class="h-screen w-screen overflow-hidden flex flex-col">
 
     <header class="bg-white border-b-4 border-slate-900 sticky top-0 z-20 flex-shrink-0">
-        <div class="max-w-7xl mx-auto px-2 sm:px-4 py-2 sm:py-3 flex flex-col sm:flex-row justify-between items-center gap-2">
+        <div class="w-full px-3 sm:px-6 py-2 sm:py-3 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div class="flex items-center gap-3">
+            <button type="button" id="btn-home" class="home-btn" onclick="showHome()" title="回首頁">⌂<span>首頁</span></button>
             <div class="flex flex-col text-center sm:text-left">
                 <h1 class="text-xl sm:text-2xl lg:text-3xl font-black tracking-wide text-slate-900 flex items-center justify-center sm:justify-start gap-2 whitespace-nowrap">
                     🎮 數字大挑戰
@@ -152,6 +154,7 @@
                     <span id="class-chip-dot" class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
                     <span id="class-chip-text"></span>
                 </span>
+            </div>
             </div>
             <!-- 進度條導覽 (包含第一~四關) -->
             <div class="flex items-center gap-1 sm:gap-2 lg:gap-4 text-xs sm:text-base font-black tracking-wide overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 justify-center">
@@ -180,7 +183,7 @@
     </header>
 
     <!-- 主容器：嚴格限制高度，禁止外層產生捲軸 -->
-    <main class="flex-1 w-full max-w-7xl mx-auto p-2 sm:p-4 flex flex-col relative overflow-hidden min-h-0">
+    <main class="flex-1 w-full p-2 sm:p-4 lg:px-6 flex flex-col relative overflow-hidden min-h-0">
         
         <section id="stage-1" class="fade-in flex flex-col w-full h-full min-h-0">
             <div class="text-center mb-2 bg-white p-2 sm:p-4 arcade-border w-full flex-shrink-0">
@@ -1855,7 +1858,8 @@
     (function () {
         const FIT_MIN_W = 1024;      // 設計最小寬度 (px)
         const FIT_MIN_H = 700;       // 設計最小高度 (px，不含上方標題列)
-        const FIT_MIN_SCALE = 0.6;   // 整頁縮放低於此值就太小了 → 改用可捲動模式
+        const FIT_MIN_SCALE = 0.6;
+        const FIT_MAX_SCALE = 1.4;   // 大螢幕最多放大到 140%   // 整頁縮放低於此值就太小了 → 改用可捲動模式
         // 這些區塊必須完整顯示（不應出現捲軸）；若仍會捲動就再縮小一點
         const MUST_FIT = ['#prime-hints-bar', '#stage-4 > .overflow-y-auto', '#stage-1 > div:last-child'];
         const main = document.querySelector('main');
@@ -1868,7 +1872,7 @@
         function applyFit(s) {
             sections().forEach(sec => {
                 sec.style.zoom = '';
-                if (s < 1) {
+                if (s !== 1) {
                     sec.style.width = (W / s) + 'px';
                     sec.style.height = (H / s) + 'px';
                     sec.style.flex = 'none';
@@ -1910,7 +1914,7 @@
             lastKey = key;
             document.body.classList.remove('scroll-mode');
             clearAll(); measure();
-            let s = Math.min(1, W / FIT_MIN_W, H / FIT_MIN_H);
+            let s = Math.min(FIT_MAX_SCALE, W / FIT_MIN_W, H / FIT_MIN_H);   // 大螢幕放大，字更大、滿版
             if (s < FIT_MIN_SCALE) { scrollMode(); return; }     // 手機橫放：畫面太矮
             applyFit(s);
             while (s > FIT_MIN_SCALE && overflowing()) { s = Math.max(FIT_MIN_SCALE, s - 0.03); applyFit(s); }
@@ -1926,6 +1930,178 @@
         // 切換關卡、產生題目、提示泡泡出現時重新計算
         new MutationObserver(schedule).observe(main, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
         fitStages();
+    })();
+    </script>
+    <!-- ===== 首頁（單元選單）＋ 墨綠金黃配色 ===== -->
+    <div id="home" class="home" aria-label="數字大挑戰首頁">
+      <div class="hscaler" id="hscaler"><div class="hslide" id="hslide">
+        <div class="hleft">
+          <div class="kicker">質數・質因數分解・標準分解式</div>
+          <h1 class="htitle">數字大挑戰</h1>
+          <div class="hbar"></div>
+          <p class="hlead">一關一關闖，練好質因數分解。<b>點選下方一個關卡開始</b>：可以照順序玩，也可以直接挑戰想練的關卡。</p>
+          <div class="hstages">
+            <button type="button" class="hstage" data-stage="1"><span class="hint">✨ 開始挑戰 →</span><span class="no">STAGE 1</span><b>🕹️ 質數接龍</b><span class="stars">★★<i>★★★</i></span><small>首尾相連・8 格過關・挑戰 14 格</small></button>
+            <button type="button" class="hstage" data-stage="2"><span class="hint">✨ 開始挑戰 →</span><span class="no">STAGE 2</span><b>⚙️ 質因數分解機</b><span class="stars">★★★<i>★★</i></span><small>樹狀圖或直接分解・除到剩 1</small></button>
+            <button type="button" class="hstage" data-stage="3"><span class="hint">✨ 開始挑戰 →</span><span class="no">STAGE 3</span><b>🧬 標準分解式</b><span class="stars">★★★<i>★★</i></span><small>由小到大排列・改寫成次方</small></button>
+            <button type="button" class="hstage" data-stage="4"><span class="hint">✨ 開始挑戰 →</span><span class="no">STAGE 4</span><b>⚔️ 動態測驗</b><span class="stars">★★★★<i>★</i></span><small>綜合驗收・單人挑戰或雙人對戰</small></button>
+          </div>
+        </div>
+        <div class="hright">
+          <div class="board" aria-hidden="true">
+            <div class="btitle">質數接龍：首尾數字相連</div>
+            <div class="bgrid">
+              <span class="c">2</span><span class="a">→</span><span class="c">23</span><span class="a">→</span><span class="c">37</span><span class="a">→</span><span class="c">71</span>
+              <span class="dn"></span><span></span><span></span><span></span><span></span><span></span><span class="dn">↓</span>
+              <span class="c">79</span><span class="a">←</span><span class="c">17</span><span class="a">←</span><span class="c">31</span><span class="a">←</span><span class="c">13</span>
+            </div>
+            <div class="bnote">2 → 2<b>3</b> → <b>3</b>7 → <b>7</b>1 …</div>
+          </div>
+          <div class="hinfo">
+            <div class="ic"><div class="k">適 合</div><div class="v">七年級</div><div class="s">質因數分解單元</div></div>
+            <div class="ic"><div class="k">時 間</div><div class="v">約 30 分鐘</div><div class="s">可分次、跳關玩</div></div>
+            <div class="ic"><div class="k">裝 置</div><div class="v">平板手機</div><div class="s">電腦也可以・免安裝</div></div>
+          </div>
+        </div>
+        <div class="hbyline">
+          <div><b>蘇恭弘・數學王子 <span>·</span> 忠孝國中</b><small>數字大挑戰・班級版（作答進度即時給老師）</small></div>
+          <div class="who">共 4 關・點選關卡開始</div>
+        </div>
+      </div></div>
+    </div>
+
+    <style>
+      :root { --ink:#16332a; --green:#1f4d3a; --green2:#2c6b50; --chalk:#1d3a2f; --gold:#e0ad35; --gold2:#f3d27a; --golddk:#9c7110;
+              --paper:#f6f1e3; --card:#fffcf3; --muted:#66705f; --line:#e4dccb; }
+      /* ---------- 首頁 ---------- */
+      .home { position: fixed; inset: 0; z-index: 90; background: var(--paper); overflow: hidden; display: none; }
+      body.home-on .home { display: block; }
+      body.home-on #floating-keypad, body.home-on #btn-open-keypad { visibility: hidden; }
+      .hscaler { position: absolute; left: 0; top: 0; }
+      .hslide { position: absolute; left: 0; top: 0; width: 1600px; height: 860px; transform-origin: 0 0; display: grid;
+        grid-template-columns: 1.18fr 1fr; grid-template-rows: minmax(0,1fr) auto; column-gap: 56px; row-gap: 16px; padding: 46px 64px 26px;
+        background: radial-gradient(circle at 0% 100%, rgba(224,173,53,.18), transparent 32%), var(--paper); color: var(--ink); font-family: 'Noto Sans TC', sans-serif; }
+      .hleft { display: flex; flex-direction: column; gap: 18px; min-width: 0; min-height: 0; }
+      .kicker { font-weight: 900; letter-spacing: .2em; color: var(--golddk); font-size: 20px; }
+      .htitle { font-family: 'Noto Serif TC', serif; font-weight: 900; font-size: 112px; line-height: 1.1; white-space: nowrap; margin: 0; letter-spacing: .03em; color: var(--ink); }
+      .hbar { width: 240px; height: 13px; border-radius: 8px; background: linear-gradient(90deg, var(--green2), var(--gold)); }
+      .hlead { font-size: 26px; line-height: 1.65; color: var(--muted); margin: 0; font-weight: 700; }
+      .hlead b { color: var(--green2); }
+      .hstages { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 4px; }
+      .hstage { position: relative; overflow: hidden; text-align: left; border: 0; border-left: 8px solid var(--green2); background: var(--card); border-radius: 18px; padding: 16px 20px;
+        box-shadow: 0 8px 22px rgba(22,51,42,.12); cursor: pointer; display: flex; flex-direction: column; gap: 4px; color: var(--ink); font-family: inherit; transition: transform .22s, box-shadow .22s; }
+      .hstage .no { font: 700 17px 'Rubik', sans-serif; color: var(--golddk); letter-spacing: .06em; }
+      .hstage b { font-size: 30px; line-height: 1.25; font-weight: 900; }
+      .hstage .stars { color: var(--gold); font-size: 22px; letter-spacing: 2px; } .hstage .stars i { color: var(--line); font-style: normal; }
+      .hstage small { font-size: 19px; color: var(--muted); font-weight: 700; line-height: 1.45; }
+      .hstage::before { content: ""; position: absolute; top: -10%; left: -70%; width: 45%; height: 120%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.85), transparent); transform: skewX(-18deg); opacity: 0; pointer-events: none; }
+      .hstage .hint { position: absolute; top: 12px; right: 14px; font-size: 16px; font-weight: 900; color: var(--ink); background: linear-gradient(90deg, var(--gold), var(--gold2)); border-radius: 999px; padding: 3px 12px; opacity: 0; transform: translateY(-6px) scale(.9); transition: .2s; pointer-events: none; }
+      .hstage:hover, .hstage:focus-visible { transform: translateY(-5px); box-shadow: 0 0 0 3px var(--gold), 0 16px 34px rgba(156,113,16,.28); outline: none; }
+      .hstage:hover::before, .hstage:focus-visible::before { animation: hshine 1s ease-out; }
+      .hstage:hover .hint, .hstage:focus-visible .hint { opacity: 1; transform: none; animation: hglow 1.4s ease-in-out .2s infinite; }
+      @keyframes hshine { 0% { left: -70%; opacity: 1; } 100% { left: 130%; opacity: 1; } }
+      @keyframes hglow { 50% { box-shadow: 0 0 14px 3px rgba(224,173,53,.6); } }
+      .hright { display: flex; flex-direction: column; gap: 20px; min-width: 0; padding-top: 8px; }
+      .board { background: var(--chalk); border-radius: 26px; padding: 22px 26px 18px; box-shadow: 0 16px 34px rgba(0,0,0,.22), inset 0 0 0 10px #2b2016;
+        background-image: linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px); background-size: 28px 28px; color: #f6f1e3; }
+      .btitle { font-weight: 900; font-size: 22px; color: var(--gold2); margin: 6px 4px 14px; letter-spacing: .06em; }
+      .bgrid { display: grid; grid-template-columns: 1fr 34px 1fr 34px 1fr 34px 1fr; align-items: center; justify-items: center; row-gap: 4px; }
+      .bgrid .c { width: 100%; aspect-ratio: 1.25; border-radius: 14px; background: #fffcf3; color: var(--ink); display: grid; place-items: center; font: 900 40px 'Rubik', sans-serif; box-shadow: 0 4px 0 rgba(0,0,0,.25); }
+      .bgrid .a, .bgrid .dn { color: var(--gold2); font-size: 28px; font-weight: 900; }
+      .bgrid .dn { height: 34px; }
+      .bnote { margin-top: 14px; font: 700 22px 'Rubik', 'Noto Sans TC', sans-serif; color: #d9e6dc; text-align: center; letter-spacing: .04em; } .bnote b { color: var(--gold2); }
+      .hinfo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+      .ic { background: var(--card); border-radius: 18px; padding: 16px 18px; box-shadow: 0 8px 20px rgba(22,51,42,.10); border-top: 6px solid var(--gold); }
+      .ic .k { font-size: 18px; font-weight: 900; letter-spacing: .3em; color: var(--muted); }
+      .ic .v { font-size: 27px; white-space: nowrap; font-weight: 900; margin: 8px 0 4px; line-height: 1.2; color: var(--green); }
+      .ic .s { font-size: 18px; color: var(--muted); font-weight: 700; }
+      .hbyline { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: flex-end; border-top: 2px solid var(--line); padding-top: 14px; }
+      .hbyline b { font-size: 26px; display: block; } .hbyline b span { color: var(--gold); }
+      .hbyline small { display: block; color: var(--muted); font-size: 19px; font-weight: 700; margin-top: 2px; }
+      .hbyline .who { color: var(--muted); font-size: 21px; font-weight: 900; }
+      .hslide.tight .htitle { font-size: 96px; } .hslide.tight .hlead { font-size: 23px; } .hslide.tight .hleft { gap: 14px; } .hslide.tight .hstage b { font-size: 27px; } .hslide.tight .hstage small { font-size: 17px; }
+      /* 手機直放：改成上下排列、可捲動 */
+      .home.flow { overflow-y: auto; }
+      .home.flow .hscaler { position: static; width: auto !important; height: auto !important; }
+      .home.flow .hslide { position: static; width: auto !important; height: auto !important; transform: none !important; display: flex; flex-direction: column; padding: 26px 18px 22px; gap: 18px; }
+      .home.flow .htitle { font-size: 56px; } .home.flow .hlead { font-size: 18px; } .home.flow .kicker { font-size: 14px; }
+      .home.flow .hstages { grid-template-columns: 1fr; gap: 12px; } .home.flow .hstage b { font-size: 24px; } .home.flow .hstage small { font-size: 15px; }
+      .home.flow .hstage .hint { display: none; }
+      .home.flow .bgrid .c { font-size: 22px; border-radius: 10px; } .home.flow .bgrid { grid-template-columns: 1fr 18px 1fr 18px 1fr 18px 1fr; } .home.flow .bgrid .a, .home.flow .bgrid .dn { font-size: 16px; }
+      .home.flow .btitle, .home.flow .bnote { font-size: 16px; } .home.flow .board { padding: 16px; border-radius: 18px; }
+      .home.flow .hinfo { grid-template-columns: 1fr 1fr 1fr; gap: 8px; } .home.flow .ic { padding: 10px; } .home.flow .ic .v { font-size: 18px; } .home.flow .ic .k, .home.flow .ic .s { font-size: 12px; letter-spacing: .1em; }
+      .home.flow .hbyline { flex-direction: column; align-items: flex-start; gap: 8px; } .home.flow .hbyline b { font-size: 19px; } .home.flow .hbyline small, .home.flow .hbyline .who { font-size: 14px; }
+      @media (prefers-reduced-motion: reduce) { .hstage, .hstage .hint { transition: none; } .hstage:hover::before, .hstage:hover .hint { animation: none; } }
+
+      /* ---------- 標題列：回首頁按鈕 ---------- */
+      .home-btn { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 3px solid var(--gold); background: transparent; color: var(--gold2); border-radius: 999px; padding: 4px 14px 4px 10px; font-weight: 900; font-size: 1.1rem; cursor: pointer; }
+      .home-btn span { font-size: .95rem; } .home-btn:hover { background: var(--gold); color: var(--ink); }
+
+      /* ---------- 墨綠＋金黃配色（覆蓋原本粉紅／青藍） ---------- */
+      html body { background-color: #1b382d; background-image: linear-gradient(rgba(255,255,255,.045) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,.045) 2px, transparent 2px); color: var(--ink); }
+      html body header, html body header.bg-white { background: #13281f; border-bottom-color: var(--gold) !important; }
+      html body header h1, html body header h1.text-slate-900 { color: #fbf6e6; }
+      html body header .text-slate-500 { color: var(--gold2); }
+      html body header .text-slate-400 { color: rgba(251,246,230,.5); }
+      html body header .text-pink-600 { color: var(--gold2); }
+      html body header .text-green-600 { color: #8fd1a6; }
+      html body header .bg-white { background: transparent; }
+      html body header .bg-pink-100 { background: var(--gold); color: var(--ink); }
+      html body header .bg-green-100 { background: #2c6b50; color: #eaf7ee; }
+      html body header .bg-slate-800 { background: rgba(243,210,122,.45); }
+      html body header .hover\:bg-slate-50:hover { background: rgba(255,255,255,.08); }
+      html body .bg-white { background-color: var(--card); }
+      html body .arcade-border { border-color: #102a20; box-shadow: 6px 6px 0 #0c1f17; }
+      html body .arcade-btn, html body .arcade-input { border-color: #102a20; }
+      html body .border-slate-900 { border-color: #102a20; }
+      html body .text-pink-600, html body .text-pink-500 { color: var(--golddk); }
+      html body .bg-pink-100 { background-color: #f7e7b4; }
+      html body .text-cyan-600 { color: var(--green2); } html body .text-cyan-800, html body .text-cyan-900 { color: var(--green); }
+      html body .bg-cyan-50 { background-color: #eef4ee; } html body .bg-cyan-100 { background-color: #dce9df; }
+      html body .hover\:bg-cyan-200:hover { background-color: #f3d27a; }
+      html body .bg-cyan-500, html body .bg-cyan-600 { background-color: var(--green2); } html body .hover\:bg-cyan-500:hover, html body .hover\:bg-cyan-400:hover { background-color: #3a8463; }
+      html body .text-purple-600, html body .text-purple-900 { color: #7a4f12; }
+      html body .text-indigo-600 { color: var(--green); }
+      html body .bg-indigo-500, html body .bg-indigo-600 { background-color: var(--green); } html body .hover\:bg-indigo-500:hover { background-color: var(--green2); }
+      html body .bg-yellow-400 { background-color: var(--gold); } html body .hover\:bg-yellow-300:hover { background-color: var(--gold2); }
+      html body .bg-orange-500 { background-color: #c08a22; } html body .bg-orange-50 { background-color: #fbf3df; } html body .border-orange-200 { border-color: #ead7a6; } html body .text-orange-800 { color: #7a5410; }
+      html body .bg-blue-500 { background-color: var(--green); } html body .text-blue-600 { color: var(--green2); } html body .border-blue-200 { border-color: #cfe0d4; }
+      html body .bg-green-500 { background-color: var(--green2); } html body .hover\:bg-green-400:hover { background-color: #3a8463; }
+      html body .bg-purple-50, html body .bg-indigo-50, html body .bg-blue-50 { background-color: #fbf6e8; } html body .border-purple-200, html body .border-indigo-200 { border-color: #ead7a6; }
+      html body .bg-purple-300 { background-color: #f3d27a; } html body .border-purple-900 { border-color: #5a3f08; } html body .text-purple-900 { color: #5a3f08; }
+      html body .bg-purple-500, html body .bg-purple-600 { background-color: #a87a12; } html body .hover\:bg-purple-400:hover, html body .hover\:bg-purple-500:hover { background-color: #c08f22; }
+      html body .bg-pink-300 { background-color: #f3d27a; } html body .bg-pink-500 { background-color: #c08a22; } html body .hover\:bg-pink-400:hover { background-color: #d9a43a; } html body .border-pink-400 { border-color: #d9a43a; }
+      html body .hover\:bg-blue-100:hover { background-color: #e4eee6; } html body .border-blue-800 { border-color: #14382b; } html body .hover\:bg-indigo-500:hover { background-color: var(--green2); }
+      html body .bg-pink-50\/95 { background-color: rgba(246,241,227,.97); } html body .bg-pink-50 { background-color: #f6f1e3; }
+      html body .hover\:bg-pink-400:hover { background-color: #d9a43a; }
+      html body .arcade-input:focus, html body .base-input:focus, html body .exp-input:focus { background-color: #fbeab2; }
+    </style>
+    <script>
+    (function () {
+      const home = document.getElementById('home'), hs = document.getElementById('hslide'), sc = document.getElementById('hscaler');
+      function layoutHome() {
+        if (!document.body.classList.contains('home-on')) return;
+        const vw = window.innerWidth, vh = window.innerHeight;
+        const flow = vw < 760 || vh < 430;
+        home.classList.toggle('flow', flow);
+        if (flow) return;
+        const H = 860, W = Math.round(Math.max(1300, Math.min(1960, H * vw / vh)));
+        hs.style.width = W + 'px'; hs.style.height = H + 'px'; hs.classList.toggle('tight', W < 1480);
+        const k = Math.min(vw / W, vh / H);
+        hs.style.transform = `scale(${k})`;
+        sc.style.width = W * k + 'px'; sc.style.height = H * k + 'px';
+        sc.style.left = (vw - W * k) / 2 + 'px'; sc.style.top = (vh - H * k) / 2 + 'px';
+      }
+      window.showHome = function () { document.body.classList.add('home-on'); layoutHome(); home.scrollTop = 0; };
+      function leaveHome(n) {
+        document.body.classList.remove('home-on');
+        jumpToStage(n);
+        window.dispatchEvent(new Event('resize'));
+      }
+      home.addEventListener('click', e => { const b = e.target.closest('[data-stage]'); if (b) leaveHome(+b.dataset.stage); });
+      window.addEventListener('resize', layoutHome);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutHome);
+      showHome();
     })();
     </script>
 </body>
