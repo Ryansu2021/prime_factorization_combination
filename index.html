@@ -1270,10 +1270,24 @@
             const q = s4State.questions[s4State.qIndex];
             document.getElementById('s4-question-text').innerHTML = q.text;
             
+            // 每位玩家各自亂數排列選項；雙人對戰時 P2 的正確答案位置必與 P1 不同，避免照抄
+            const shuffled = () => {
+                const a = q.options.slice();
+                for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+                return a;
+            };
+            const p1Opts = shuffled();
+            let p2Opts = shuffled();
+            if (q.options.length > 1) {
+                const p1Pos = p1Opts.findIndex(o => o.correct);
+                let tries = 0;
+                while ((p2Opts.findIndex(o => o.correct) === p1Pos || p2Opts.every((o, i) => o === p1Opts[i])) && tries++ < 50) p2Opts = shuffled();
+            }
+
             const renderBtns = (containerId, player) => {
                 const container = document.getElementById(containerId);
                 container.innerHTML = '';
-                q.options.forEach((opt) => {
+                (player === 'p1' ? p1Opts : p2Opts).forEach((opt) => {
                     const btn = document.createElement('button');
                     btn.className = `arcade-btn bg-white hover:bg-slate-100 text-slate-800 text-2xl sm:text-4xl lg:text-5xl font-black py-6 shadow-[4px_4px_0px_#0f172a] num-font transition-colors w-full h-full flex items-center justify-center ${player==='p1' ? 'hover:bg-red-100 border-red-200' : 'hover:bg-blue-100 border-blue-200'}`;
                     btn.innerHTML = opt.text;
