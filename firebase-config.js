@@ -5,17 +5,17 @@
 // ============================================================
 
 export const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyD23OUzbSu2Je_ljhuzZHPnF8sKNw8Elow",
+  authDomain: "prime-challenge-9dafb.firebaseapp.com",
+  projectId: "prime-challenge-9dafb",
+  storageBucket: "prime-challenge-9dafb.firebasestorage.app",
+  messagingSenderId: "1046327881501",
+  appId: "1:1046327881501:web:e33a3f1c08334fb796fbf4"
 };
 
 // 可以登入教師 dashboard 的 Google 帳號（必須和 firestore.rules 裡的名單一致）
 export const TEACHER_EMAILS = [
-  "YOUR_TEACHER_EMAIL@gmail.com"
+  "ghsghs1@gmail.com"
 ];
 
 // 判斷是否已完成設定

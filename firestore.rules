@@ -3,7 +3,7 @@ rules_version = '2';
 // ============================================================
 //  數字大挑戰 Firestore 安全規則
 //  使用方式：複製全部內容，貼到 Firebase 主控台 → Firestore Database → 規則 → 發布
-//  ⚠️ 請把下方 YOUR_TEACHER_EMAIL@gmail.com 改成你登入教師 dashboard 用的 Google 帳號
+//  教師帳號：下方 isTeacher() 的名單；若要更換，firebase-config.js 的 TEACHER_EMAILS 也要一起改
 // ============================================================
 
 service cloud.firestore {
@@ -12,7 +12,7 @@ service cloud.firestore {
     function isTeacher() {
       return request.auth != null
         && request.auth.token.email_verified == true
-        && request.auth.token.email in ['YOUR_TEACHER_EMAIL@gmail.com'];
+        && request.auth.token.email in ['ghsghs1@gmail.com'];
     }
 
     function sessionActive(code) {
