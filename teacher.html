@@ -211,7 +211,7 @@
 </main>
 
 <!-- 放大的課堂代碼 -->
-<div id="code-modal" class="hidden-v fixed inset-0 z-[150] bg-white flex flex-col items-center justify-center gap-6 p-6 no-print">
+<div id="code-modal" class="hidden-v fixed inset-0 z-[150] bg-white flex flex-col items-center justify-center gap-6 p-6 no-print overflow-y-auto" style="justify-content: safe center;">
     <div class="text-3xl font-black text-slate-600">打開網頁，輸入課堂代碼和座號</div>
     <div id="code-modal-url" class="text-xl font-bold text-slate-500 break-all text-center"></div>
     <div class="flex flex-wrap items-center justify-center gap-12">
@@ -266,7 +266,7 @@ if (!isConfigured) {
     show('view-unconfigured', false);
     const V = '10.12.2';
     const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
-    const { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-auth.js`);
+    const { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-auth.js`);
     const { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, query, orderBy, limit, getDocs,
             onSnapshot, serverTimestamp, writeBatch } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
 
@@ -283,8 +283,16 @@ if (!isConfigured) {
     $('btn-signin').onclick = async () => {
         show('login-error', false);
         try { await signInWithPopup(auth, new GoogleAuthProvider()); }
-        catch (e) { $('login-error').textContent = '登入失敗：' + (e.code || e.message); show('login-error'); }
+        catch (e) {
+            // 平板／手機瀏覽器擋下彈出視窗時，改用整頁跳轉登入
+            if (['auth/popup-blocked', 'auth/operation-not-supported-in-this-environment', 'auth/cancelled-popup-request'].includes(e.code)) {
+                try { await signInWithRedirect(auth, new GoogleAuthProvider()); return; } catch (e2) { e = e2; }
+            }
+            if (e.code === 'auth/popup-closed-by-user') return;
+            $('login-error').textContent = '登入失敗：' + (e.code || e.message); show('login-error');
+        }
     };
+    getRedirectResult(auth).catch(e => { $('login-error').textContent = '登入失敗：' + (e.code || e.message); show('login-error'); });
     $('btn-signout').onclick = () => { leaveSession(); signOut(auth); };
 
     onAuthStateChanged(auth, (user) => {
